@@ -20,6 +20,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	defer cache.Close()
 
 	items, err := cache.ItemDefinitions()
 	if err != nil {
