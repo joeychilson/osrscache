@@ -94,12 +94,12 @@ func (c *Cache) EntityCount(indexID IndexID, archiveID ArchiveID) (int, error) {
 func (c *Cache) ItemDefinitions() (ItemDefinitions, error) {
 	entryCount, err := c.EntityCount(2, 10)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("getting entity count: %w", err)
 	}
 
 	group, err := c.ArchiveGroup(2, 10, entryCount)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("getting item definitions: %w", err)
 	}
 
 	definitions := make(ItemDefinitions, len(group.Files))
