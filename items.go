@@ -18,63 +18,63 @@ func (d ItemDefinitions) Get(id uint16) (*ItemDefinition, error) {
 }
 
 type ItemDefinition struct {
-	ID                       uint16
-	Category                 uint16
-	Name                     string
-	Examine                  string
-	MembersOnly              bool
-	Stackable                bool
-	Tradeable                bool
-	Exchangeable             bool
-	Value                    int32
-	Weight                   int16
-	ActionsGround            [5]string
-	ActionsInventory         [5]string
-	NotedItemID              uint16
-	NotedTemplate            uint16
-	StackItemIDs             [10]uint16
-	StackQuantities          [10]uint16
-	Team                     int8
-	BoughtLinkID             uint16
-	BoughtTemplate           uint16
-	PlaceholderItemID        uint16
-	PlaceholderTemplate      uint16
-	ShiftClickDropIndex      uint8
-	Params                   map[uint32]any
-	InventoryModelData       InventoryModelData
-	CharacterModelDataMale   CharacterModelData
-	CharacterModelDataFemale CharacterModelData
-	WearPositionPrimary      uint8
-	WearPositionSecondary    uint8
-	WearPositionTertiary     uint8
+	ID                       uint16             `json:"id"`
+	Category                 uint16             `json:"category"`
+	Name                     string             `json:"name"`
+	Examine                  string             `json:"examine"`
+	MembersOnly              bool               `json:"members_only"`
+	Stackable                bool               `json:"stackable"`
+	Tradeable                bool               `json:"tradeable"`
+	Exchangeable             bool               `json:"exchangeable"`
+	Value                    int32              `json:"value"`
+	Weight                   int16              `json:"weight"`
+	ActionsGround            [5]string          `json:"actions_ground"`
+	ActionsInventory         [5]string          `json:"actions_inventory"`
+	NotedItemID              uint16             `json:"noted_item_id"`
+	NotedTemplate            uint16             `json:"noted_template"`
+	StackItemIDs             [10]uint16         `json:"stack_item_ids"`
+	StackQuantities          [10]uint16         `json:"stack_quantities"`
+	Team                     int8               `json:"team"`
+	BoughtLinkID             uint16             `json:"bought_link_id"`
+	BoughtTemplate           uint16             `json:"bought_template"`
+	PlaceholderItemID        uint16             `json:"placeholder_item_id"`
+	PlaceholderTemplate      uint16             `json:"placeholder_template"`
+	ShiftClickDropIndex      uint8              `json:"shift_click_drop_index"`
+	Params                   map[uint32]any     `json:"params"`
+	InventoryModelData       InventoryModelData `json:"inventory_model_data"`
+	CharacterModelDataMale   CharacterModelData `json:"character_model_data_male"`
+	CharacterModelDataFemale CharacterModelData `json:"character_model_data_female"`
+	WearPositionPrimary      uint8              `json:"wear_position_primary"`
+	WearPositionSecondary    uint8              `json:"wear_position_secondary"`
+	WearPositionTertiary     uint8              `json:"wear_position_tertiary"`
 }
 
 type InventoryModelData struct {
-	ID            uint16
-	Zoom          uint16
-	RotationX     uint16
-	RotationY     uint16
-	RotationZ     uint16
-	OffsetX       uint16
-	OffsetY       uint16
-	ScaleX        uint16
-	ScaleY        uint16
-	ScaleZ        uint16
-	RecolorFrom   []uint16
-	RecolorTo     []uint16
-	RetextureFrom []uint16
-	RetextureTo   []uint16
-	Ambient       int8
-	Contrast      int8
+	ID            uint16   `json:"id"`
+	Zoom          uint16   `json:"zoom"`
+	RotationX     uint16   `json:"rotation_x"`
+	RotationY     uint16   `json:"rotation_y"`
+	RotationZ     uint16   `json:"rotation_z"`
+	OffsetX       uint16   `json:"offset_x"`
+	OffsetY       uint16   `json:"offset_y"`
+	ScaleX        uint16   `json:"scale_x"`
+	ScaleY        uint16   `json:"scale_y"`
+	ScaleZ        uint16   `json:"scale_z"`
+	RecolorFrom   []uint16 `json:"recolor_from"`
+	RecolorTo     []uint16 `json:"recolor_to"`
+	RetextureFrom []uint16 `json:"retexture_from"`
+	RetextureTo   []uint16 `json:"retexture_to"`
+	Ambient       int8     `json:"ambient"`
+	Contrast      int8     `json:"contrast"`
 }
 
 type CharacterModelData struct {
-	ModelPrimary           uint16
-	ModelSecondary         uint16
-	ModelTertiary          uint16
-	Offset                 uint8
-	ChatHeadModelPrimary   uint16
-	ChatHeadModelSecondary uint16
+	ModelPrimary           uint16 `json:"model_primary"`
+	ModelSecondary         uint16 `json:"model_secondary"`
+	ModelTertiary          uint16 `json:"model_tertiary"`
+	Offset                 uint8  `json:"offset"`
+	ChatHeadModelPrimary   uint16 `json:"chat_head_model_primary"`
+	ChatHeadModelSecondary uint16 `json:"chat_head_model_secondary"`
 }
 
 func NewItemDefinition(id uint16, data []byte) (*ItemDefinition, error) {

@@ -19,69 +19,69 @@ func (d NPCDefinitions) Get(id uint16) (*NPCDefinition, error) {
 }
 
 type NPCDefinition struct {
-	ID               uint16
-	Category         uint16
-	Name             string
-	Examine          string
-	Size             uint8
-	Height           uint16
-	Hitpoints        uint16
-	Attack           uint16
-	Strength         uint16
-	Defense          uint16
-	Ranged           uint16
-	Magic            uint16
-	CombatLevel      uint16
-	Actions          [5]string
-	Interactable     bool
-	Follower         bool
-	LowPriority      bool
-	Visible          bool
-	VisibleOnMinimap bool
-	Configs          []uint16
-	VarbitID         uint16
-	VarpIndex        uint16
-	OobChild         uint16
-	Params           map[uint32]any
-	ModelData        NPCModelData
-	AnimationData    NPCAnimationData
+	ID               uint16           `json:"id"`
+	Category         uint16           `json:"category"`
+	Name             string           `json:"name"`
+	Examine          string           `json:"examine"`
+	Size             uint8            `json:"size"`
+	Height           uint16           `json:"height"`
+	Hitpoints        uint16           `json:"hitpoints"`
+	Attack           uint16           `json:"attack"`
+	Strength         uint16           `json:"strength"`
+	Defense          uint16           `json:"defense"`
+	Ranged           uint16           `json:"ranged"`
+	Magic            uint16           `json:"magic"`
+	CombatLevel      uint16           `json:"combat_level"`
+	Actions          [5]string        `json:"actions"`
+	Interactable     bool             `json:"interactable"`
+	Follower         bool             `json:"follower"`
+	LowPriority      bool             `json:"low_priority"`
+	Visible          bool             `json:"visible"`
+	VisibleOnMinimap bool             `json:"visible_on_minimap"`
+	Configs          []uint16         `json:"configs"`
+	VarbitID         uint16           `json:"varbit_id"`
+	VarpIndex        uint16           `json:"varp_index"`
+	OobChild         uint16           `json:"oob_child"`
+	Params           map[uint32]any   `json:"params"`
+	ModelData        NPCModelData     `json:"model_data"`
+	AnimationData    NPCAnimationData `json:"animation_data"`
 }
 
 type NPCModelData struct {
-	Models              []uint16
-	ChatHeadModels      []uint16
-	RecolorFrom         []uint16
-	RecolorTo           []uint16
-	RetextureFrom       []uint16
-	RetextureTo         []uint16
-	ScaleHeight         uint16
-	ScaleWidth          uint16
-	RenderPriority      bool
-	Ambient             uint8
-	Contrast            uint8
-	HeadIcon            uint16
-	HeadIconArchive     []int16
-	HeadIconSpriteIndex []int16
-	RotateSpeed         uint16
-	RotateFlag          bool
+	Models              []uint16 `json:"models"`
+	ChatHeadModels      []uint16 `json:"chat_head_models"`
+	RecolorFrom         []uint16 `json:"recolor_from"`
+	RecolorTo           []uint16 `json:"recolor_to"`
+	RetextureFrom       []uint16 `json:"retexture_from"`
+	RetextureTo         []uint16 `json:"retexture_to"`
+	ScaleHeight         uint16   `json:"scale_height"`
+	ScaleWidth          uint16   `json:"scale_width"`
+	RenderPriority      bool     `json:"render_priority"`
+	Ambient             uint8    `json:"ambient"`
+	Contrast            uint8    `json:"contrast"`
+	HeadIcon            uint16   `json:"head_icon"`
+	HeadIconArchive     []int16  `json:"head_icon_archive"`
+	HeadIconSpriteIndex []int16  `json:"head_icon_sprite_index"`
+	RotateSpeed         uint16   `json:"rotate_speed"`
+	RotateFlag          bool     `json:"rotate_flag"`
 }
 
 type NPCAnimationData struct {
-	Idle                uint16
-	IdleRotateLeft      uint16
-	IdleRotateRight     uint16
-	Walking             uint16
-	WalkingRotateLeft   uint16
-	WalkingRotateRight  uint16
-	WalkingRotate180    uint16
-	Running             uint16
-	RunningRotateLeft   uint16
-	RunningRotateRight  uint16
-	RunningRotate180    uint16
-	Crawling            uint16
-	CrawlingRotateLeft  uint16
-	CrawlingRotateRight uint16
-	CrawlingRotate180   uint16
+	Idle                uint16 `json:"idle"`
+	IdleRotateLeft      uint16 `json:"idle_rotate_left"`
+	IdleRotateRight     uint16 `json:"idle_rotate_right"`
+	Walking             uint16 `json:"walking"`
+	WalkingRotateLeft   uint16 `json:"walking_rotate_left"`
+	WalkingRotateRight  uint16 `json:"walking_rotate_right"`
+	WalkingRotate180    uint16 `json:"walking_rotate_180"`
+	Running             uint16 `json:"running"`
+	RunningRotateLeft   uint16 `json:"running_rotate_left"`
+	RunningRotateRight  uint16 `json:"running_rotate_right"`
+	RunningRotate180    uint16 `json:"running_rotate_180"`
+	Crawling            uint16 `json:"crawling"`
+	CrawlingRotateLeft  uint16 `json:"crawling_rotate_left"`
+	CrawlingRotateRight uint16 `json:"crawling_rotate_right"`
+	CrawlingRotate180   uint16 `json:"crawling_rotate_180"`
 }
 
 func NewNPCDefinition(id uint16, data []byte) (*NPCDefinition, error) {

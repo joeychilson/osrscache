@@ -114,6 +114,14 @@ func (c *Cache) ItemDefinitions() (ItemDefinitions, error) {
 	return definitions, nil
 }
 
+func (c *Cache) ExportItemDefinitions(outputDir, mode, filename string) error {
+	items, err := c.ItemDefinitions()
+	if err != nil {
+		return fmt.Errorf("getting item definitions: %w", err)
+	}
+	return NewExporter(items, outputDir).ExportToJSON(mode, filename)
+}
+
 func (c *Cache) NPCDefinitions() (NPCDefinitions, error) {
 	entryCount, err := c.EntityCount(2, 9)
 	if err != nil {
@@ -135,6 +143,14 @@ func (c *Cache) NPCDefinitions() (NPCDefinitions, error) {
 	}
 
 	return definitions, nil
+}
+
+func (c *Cache) ExportNPCDefinitions(outputDir, mode, filename string) error {
+	npcs, err := c.NPCDefinitions()
+	if err != nil {
+		return fmt.Errorf("getting NPC definitions: %w", err)
+	}
+	return NewExporter(npcs, outputDir).ExportToJSON(mode, filename)
 }
 
 func (c *Cache) Close() error {
