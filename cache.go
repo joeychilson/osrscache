@@ -108,7 +108,30 @@ func (c *Cache) ItemDefinitions() (ItemDefinitions, error) {
 		if err != nil {
 			return nil, fmt.Errorf("creating item definition: %w", err)
 		}
-		definitions[uint32(file.ID)] = def
+		definitions[uint16(file.ID)] = def
+	}
+
+	return definitions, nil
+}
+
+func (c *Cache) NPCDefinitions() (NPCDefinitions, error) {
+	entryCount, err := c.EntityCount(2, 9)
+	if err != nil {
+		return nil, fmt.Errorf("getting entity count: %w", err)
+	}
+
+	group, err := c.ArchiveGroup(2, 9, entryCount)
+	if err != nil {
+		return nil, fmt.Errorf("getting npc definitions: %w", err)
+	}
+
+	definitions := make(NPCDefinitions, len(group.Files))
+	for _, file := range group.Files {
+		def, err := NewNPCDefinition(uint16(file.ID), file.Data)
+		if err != nil {
+			return nil, fmt.Errorf("creating npc definition: %w", err)
+		}
+		definitions[uint16(file.ID)] = def
 	}
 
 	return definitions, nil

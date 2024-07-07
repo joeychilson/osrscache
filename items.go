@@ -7,9 +7,9 @@ import (
 	"io"
 )
 
-type ItemDefinitions map[uint32]*ItemDefinition
+type ItemDefinitions map[uint16]*ItemDefinition
 
-func (d ItemDefinitions) Get(id uint32) (*ItemDefinition, error) {
+func (d ItemDefinitions) Get(id uint16) (*ItemDefinition, error) {
 	def, ok := d[id]
 	if !ok {
 		return nil, fmt.Errorf("item definition not found")
@@ -18,38 +18,38 @@ func (d ItemDefinitions) Get(id uint32) (*ItemDefinition, error) {
 }
 
 type ItemDefinition struct {
-	ID                    uint16
-	Category              uint16
-	Name                  string
-	Examine               string
-	MembersOnly           bool
-	Stackable             bool
-	Tradeable             bool
-	Exchangeable          bool
-	Value                 int32
-	Weight                int16
-	ActionsGround         [5]string
-	ActionsInventory      [5]string
-	NotedItemID           uint16
-	NotedTemplate         uint16
-	StackItemIDs          [10]uint16
-	StackQuantities       [10]uint16
-	Team                  int8
-	BoughtLinkID          uint16
-	BoughtTemplate        uint16
-	PlaceholderItemID     uint16
-	PlaceholderTemplate   uint16
-	ShiftClickDropIndex   uint8
-	Params                map[uint32]any
-	InventoryModel        InventoryModel
-	CharacterModelMale    CharacterModel
-	CharacterModelFemale  CharacterModel
-	WearPositionPrimary   uint8
-	WearPositionSecondary uint8
-	WearPositionTertiary  uint8
+	ID                       uint16
+	Category                 uint16
+	Name                     string
+	Examine                  string
+	MembersOnly              bool
+	Stackable                bool
+	Tradeable                bool
+	Exchangeable             bool
+	Value                    int32
+	Weight                   int16
+	ActionsGround            [5]string
+	ActionsInventory         [5]string
+	NotedItemID              uint16
+	NotedTemplate            uint16
+	StackItemIDs             [10]uint16
+	StackQuantities          [10]uint16
+	Team                     int8
+	BoughtLinkID             uint16
+	BoughtTemplate           uint16
+	PlaceholderItemID        uint16
+	PlaceholderTemplate      uint16
+	ShiftClickDropIndex      uint8
+	Params                   map[uint32]any
+	InventoryModelData       InventoryModelData
+	CharacterModelDataMale   CharacterModelData
+	CharacterModelDataFemale CharacterModelData
+	WearPositionPrimary      uint8
+	WearPositionSecondary    uint8
+	WearPositionTertiary     uint8
 }
 
-type InventoryModel struct {
+type InventoryModelData struct {
 	ID            uint16
 	Zoom          uint16
 	RotationX     uint16
@@ -68,7 +68,7 @@ type InventoryModel struct {
 	Contrast      int8
 }
 
-type CharacterModel struct {
+type CharacterModelData struct {
 	ModelPrimary           uint16
 	ModelSecondary         uint16
 	ModelTertiary          uint16
@@ -83,8 +83,7 @@ func NewItemDefinition(id uint16, data []byte) (*ItemDefinition, error) {
 		Name:             "null",
 		ActionsGround:    [5]string{"", "", "Take", "", ""},
 		ActionsInventory: [5]string{"", "", "", "", "Drop"},
-		Params:           make(map[uint32]any),
-		InventoryModel: InventoryModel{
+		InventoryModelData: InventoryModelData{
 			Zoom:   2000,
 			ScaleX: 128,
 			ScaleY: 128,
@@ -113,7 +112,7 @@ func (def *ItemDefinition) Read(data []byte) error {
 		}
 		switch opcode {
 		case 1:
-			def.InventoryModel.ID, err = reader.ReadUint16()
+			def.InventoryModelData.ID, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading inventory model id: %w", err)
 			}
@@ -128,27 +127,27 @@ func (def *ItemDefinition) Read(data []byte) error {
 				return fmt.Errorf("reading examine: %w", err)
 			}
 		case 4:
-			def.InventoryModel.Zoom, err = reader.ReadUint16()
+			def.InventoryModelData.Zoom, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading inventory model zoom2d: %w", err)
 			}
 		case 5:
-			def.InventoryModel.RotationX, err = reader.ReadUint16()
+			def.InventoryModelData.RotationX, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading inventory model xan2d: %w", err)
 			}
 		case 6:
-			def.InventoryModel.RotationY, err = reader.ReadUint16()
+			def.InventoryModelData.RotationY, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading inventory model yan2d: %w", err)
 			}
 		case 7:
-			def.InventoryModel.OffsetX, err = reader.ReadUint16()
+			def.InventoryModelData.OffsetX, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading inventory model xoffset2d: %w", err)
 			}
 		case 8:
-			def.InventoryModel.OffsetY, err = reader.ReadUint16()
+			def.InventoryModelData.OffsetY, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading inventory model yoffset2d: %w", err)
 			}
@@ -172,30 +171,30 @@ func (def *ItemDefinition) Read(data []byte) error {
 		case 16:
 			def.MembersOnly = true
 		case 23:
-			def.CharacterModelMale.ModelPrimary, err = reader.ReadUint16()
+			def.CharacterModelDataMale.ModelPrimary, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading male character model primary: %w", err)
 			}
-			def.CharacterModelMale.Offset, err = reader.ReadUint8()
+			def.CharacterModelDataMale.Offset, err = reader.ReadUint8()
 			if err != nil {
 				return fmt.Errorf("reading male character model offset: %w", err)
 			}
 		case 24:
-			def.CharacterModelMale.ModelSecondary, err = reader.ReadUint16()
+			def.CharacterModelDataMale.ModelSecondary, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading male character model secondary: %w", err)
 			}
 		case 25:
-			def.CharacterModelFemale.ModelPrimary, err = reader.ReadUint16()
+			def.CharacterModelDataFemale.ModelPrimary, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading female character model primary: %w", err)
 			}
-			def.CharacterModelFemale.Offset, err = reader.ReadUint8()
+			def.CharacterModelDataFemale.Offset, err = reader.ReadUint8()
 			if err != nil {
 				return fmt.Errorf("reading female character model offset: %w", err)
 			}
 		case 26:
-			def.CharacterModelFemale.ModelSecondary, err = reader.ReadUint16()
+			def.CharacterModelDataFemale.ModelSecondary, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading female character model secondary: %w", err)
 			}
@@ -219,14 +218,14 @@ func (def *ItemDefinition) Read(data []byte) error {
 			if err != nil {
 				return fmt.Errorf("reading param length: %w", err)
 			}
-			def.InventoryModel.RecolorFrom = make([]uint16, length)
-			def.InventoryModel.RecolorTo = make([]uint16, length)
+			def.InventoryModelData.RecolorFrom = make([]uint16, length)
+			def.InventoryModelData.RecolorTo = make([]uint16, length)
 			for i := 0; i < int(length); i++ {
-				def.InventoryModel.RecolorFrom[i], err = reader.ReadUint16()
+				def.InventoryModelData.RecolorFrom[i], err = reader.ReadUint16()
 				if err != nil {
 					return fmt.Errorf("reading recolor from: %w", err)
 				}
-				def.InventoryModel.RecolorTo[i], err = reader.ReadUint16()
+				def.InventoryModelData.RecolorTo[i], err = reader.ReadUint16()
 				if err != nil {
 					return fmt.Errorf("reading recolor to: %w", err)
 				}
@@ -236,14 +235,14 @@ func (def *ItemDefinition) Read(data []byte) error {
 			if err != nil {
 				return fmt.Errorf("reading param length: %w", err)
 			}
-			def.InventoryModel.RetextureFrom = make([]uint16, length)
-			def.InventoryModel.RetextureTo = make([]uint16, length)
+			def.InventoryModelData.RetextureFrom = make([]uint16, length)
+			def.InventoryModelData.RetextureTo = make([]uint16, length)
 			for i := 0; i < int(length); i++ {
-				def.InventoryModel.RetextureFrom[i], err = reader.ReadUint16()
+				def.InventoryModelData.RetextureFrom[i], err = reader.ReadUint16()
 				if err != nil {
 					return fmt.Errorf("reading recolor from: %w", err)
 				}
-				def.InventoryModel.RetextureTo[i], err = reader.ReadUint16()
+				def.InventoryModelData.RetextureTo[i], err = reader.ReadUint16()
 				if err != nil {
 					return fmt.Errorf("reading recolor to: %w", err)
 				}
@@ -261,32 +260,32 @@ func (def *ItemDefinition) Read(data []byte) error {
 				return fmt.Errorf("reading weight: %w", err)
 			}
 		case 78:
-			def.CharacterModelMale.ModelTertiary, err = reader.ReadUint16()
+			def.CharacterModelDataMale.ModelTertiary, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading male character model chat head model secondary: %w", err)
 			}
 		case 79:
-			def.CharacterModelFemale.ModelTertiary, err = reader.ReadUint16()
+			def.CharacterModelDataFemale.ModelTertiary, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading female character model chat head model secondary: %w", err)
 			}
 		case 90:
-			def.CharacterModelMale.ChatHeadModelPrimary, err = reader.ReadUint16()
+			def.CharacterModelDataMale.ChatHeadModelPrimary, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading male character model chat head model primary: %w", err)
 			}
 		case 91:
-			def.CharacterModelFemale.ChatHeadModelPrimary, err = reader.ReadUint16()
+			def.CharacterModelDataFemale.ChatHeadModelPrimary, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading female character model chat head model primary: %w", err)
 			}
 		case 92:
-			def.CharacterModelMale.ChatHeadModelSecondary, err = reader.ReadUint16()
+			def.CharacterModelDataMale.ChatHeadModelSecondary, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading male character model chat head model secondary: %w", err)
 			}
 		case 93:
-			def.CharacterModelFemale.ChatHeadModelSecondary, err = reader.ReadUint16()
+			def.CharacterModelDataFemale.ChatHeadModelSecondary, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading female character model chat head model secondary: %w", err)
 			}
@@ -296,7 +295,7 @@ func (def *ItemDefinition) Read(data []byte) error {
 				return fmt.Errorf("reading category: %w", err)
 			}
 		case 95:
-			def.InventoryModel.RotationZ, err = reader.ReadUint16()
+			def.InventoryModelData.RotationZ, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading inventory model rotation z: %w", err)
 			}
@@ -320,27 +319,27 @@ func (def *ItemDefinition) Read(data []byte) error {
 				return fmt.Errorf("reading stack quantities: %w", err)
 			}
 		case 110:
-			def.InventoryModel.ScaleX, err = reader.ReadUint16()
+			def.InventoryModelData.ScaleX, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading inventory model scale x: %w", err)
 			}
 		case 111:
-			def.InventoryModel.ScaleY, err = reader.ReadUint16()
+			def.InventoryModelData.ScaleY, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading inventory model scale y: %w", err)
 			}
 		case 112:
-			def.InventoryModel.ScaleZ, err = reader.ReadUint16()
+			def.InventoryModelData.ScaleZ, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading inventory model scale z: %w", err)
 			}
 		case 113:
-			def.InventoryModel.Ambient, err = reader.ReadInt8()
+			def.InventoryModelData.Ambient, err = reader.ReadInt8()
 			if err != nil {
 				return fmt.Errorf("reading inventory model ambient: %w", err)
 			}
 		case 114:
-			def.InventoryModel.Contrast, err = reader.ReadInt8()
+			def.InventoryModelData.Contrast, err = reader.ReadInt8()
 			if err != nil {
 				return fmt.Errorf("reading inventory model contrast: %w", err)
 			}
@@ -374,6 +373,7 @@ func (def *ItemDefinition) Read(data []byte) error {
 			if err != nil {
 				return fmt.Errorf("reading param length: %w", err)
 			}
+			def.Params = make(map[uint32]any, length)
 			for i := 0; i < int(length); i++ {
 				isString, err := reader.ReadUint8()
 				if err != nil {

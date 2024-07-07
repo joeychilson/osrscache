@@ -2,6 +2,7 @@ package osrscache
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 )
 
@@ -55,6 +56,35 @@ func (br *BinaryReader) ReadUint24() (uint32, error) {
 		return 0, err
 	}
 	return uint32(buf[0])<<16 | uint32(buf[1])<<8 | uint32(buf[2]), nil
+}
+
+func (br *BinaryReader) ReadBigSmart2() (int32, error) {
+	value, err := br.ReadUint16()
+	if err != nil {
+		return 0, fmt.Errorf("reading initial uint16 for BigSmart2: %w", err)
+	}
+	if value == 0 {
+		return -1, nil
+	}
+	if value < 32768 {
+		return int32(value - 1), nil
+	}
+	value2, err := br.ReadUint32()
+	if err != nil {
+		return 0, fmt.Errorf("reading uint32 for BigSmart2: %w", err)
+	}
+	return int32(value2 - 0x10000), nil
+}
+
+func (br *BinaryReader) ReadUint16SmartMinus1() (uint16, error) {
+	value, err := br.ReadUint16()
+	if err != nil {
+		return 0, fmt.Errorf("reading uint16 for SmartMinus1: %w", err)
+	}
+	if value == 32767 {
+		return 0, nil // Special case: 32767 means 0
+	}
+	return value + 1, nil
 }
 
 func (br *BinaryReader) ReadString() (string, error) {
