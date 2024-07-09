@@ -1,7 +1,6 @@
 package osrscache
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -104,7 +103,7 @@ func NewNPCDefinition(id uint16, data []byte) (*NPCDefinition, error) {
 }
 
 func (def *NPCDefinition) Read(data []byte) error {
-	reader := NewBinaryReader(bytes.NewReader(data))
+	reader := NewBinaryReader(data)
 	for {
 		opcode, err := reader.ReadUint8()
 		if err != nil {

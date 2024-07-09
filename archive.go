@@ -113,7 +113,6 @@ func NewArchiveGroup(buffer []byte, entryCount int) (*ArchiveGroup, error) {
 
 	for i := 0; i < numChunks; i++ {
 		totalChunkSize := 0
-
 		for entryID := 0; entryID < entryCount; entryID++ {
 			if readPtr+4 > len(buffer) {
 				return nil, fmt.Errorf("unexpected end of buffer while reading chunk sizes")
@@ -142,6 +141,5 @@ func NewArchiveGroup(buffer []byte, entryCount int) (*ArchiveGroup, error) {
 		})
 		readPtr += chunk.chunkSize
 	}
-
 	return &ArchiveGroup{Files: data}, nil
 }

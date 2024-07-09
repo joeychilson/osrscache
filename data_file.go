@@ -24,7 +24,6 @@ func NewDataFile(path string) (*DataFile, error) {
 		file.Close()
 		return nil, err
 	}
-
 	return &DataFile{File: file, Size: info.Size()}, nil
 }
 
@@ -73,7 +72,6 @@ func (d *DataFile) Read(ref *ArchiveRef) ([]byte, error) {
 	if len(buffer) != int(ref.Length) {
 		return nil, fmt.Errorf("read data length mismatch: got %d, want %d", len(buffer), ref.Length)
 	}
-
 	return buffer, nil
 }
 

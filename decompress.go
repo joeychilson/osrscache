@@ -57,6 +57,5 @@ func DecompressArchiveData(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to decompress data (read %d bytes): %w", n, err)
 	}
-
 	return uncompressedData, nil
 }

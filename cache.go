@@ -27,14 +27,14 @@ func NewCache(path string) (*Cache, error) {
 }
 
 func (c *Cache) ArchiveData(indexID IndexID, archiveID ArchiveID) ([]byte, error) {
-	index, ok := c.Indices.Get(indexID)
-	if !ok {
-		return nil, fmt.Errorf("index not found: %d", indexID)
+	index, err := c.Indices.Get(indexID)
+	if err != nil {
+		return nil, fmt.Errorf("getting index: %w", err)
 	}
 
-	archiveRef, ok := index.ArchiveRef(archiveID)
-	if !ok {
-		return nil, fmt.Errorf("archive not found: index %d, archive %d", indexID, archiveID)
+	archiveRef, err := index.ArchiveRef(archiveID)
+	if err != nil {
+		return nil, fmt.Errorf("getting archive reference: %w", err)
 	}
 
 	data, err := c.Data.Read(archiveRef)

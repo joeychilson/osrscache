@@ -1,7 +1,6 @@
 package osrscache
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -92,7 +91,7 @@ func NewObjectDefinition(id uint16, data []byte) (*ObjectDefinition, error) {
 }
 
 func (def *ObjectDefinition) Read(data []byte) error {
-	reader := NewBinaryReader(bytes.NewReader(data))
+	reader := NewBinaryReader(data)
 	for {
 		opcode, err := reader.ReadUint8()
 		if err != nil {

@@ -53,12 +53,15 @@ func NewIndices(path string) (*Indices, error) {
 	return indices, nil
 }
 
-func (i *Indices) Get(id IndexID) (*Index, bool) {
+func (i *Indices) Get(id IndexID) (*Index, error) {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
 	index, ok := i.indices[IndexID(id)]
-	return index, ok
+	if !ok {
+		return nil, fmt.Errorf("index not found: %d", id)
+	}
+	return index, nil
 }
 
 func (i *Indices) Count() int {
@@ -111,16 +114,18 @@ func NewIndex(id IndexID, file string) (*Index, error) {
 
 		index.ArchiveRefs[archiveID] = archiveRef
 	}
-
 	return index, nil
 }
 
-func (i *Index) ArchiveRef(id ArchiveID) (*ArchiveRef, bool) {
+func (i *Index) ArchiveRef(id ArchiveID) (*ArchiveRef, error) {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
 	ref, ok := i.ArchiveRefs[id]
-	return ref, ok
+	if !ok {
+		return nil, fmt.Errorf("archive ref not found: %d", id)
+	}
+	return ref, nil
 }
 
 func (i *Index) ArchiveIDs() []ArchiveID {
