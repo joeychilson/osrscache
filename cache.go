@@ -23,7 +23,6 @@ func NewCache(path string) (*Cache, error) {
 		data.Close()
 		return nil, fmt.Errorf("creating indices: %w", err)
 	}
-
 	return &Cache{Data: data, Indices: indices}, nil
 }
 
@@ -42,7 +41,6 @@ func (c *Cache) ArchiveData(indexID IndexID, archiveID ArchiveID) ([]byte, error
 	if err != nil {
 		return nil, fmt.Errorf("reading archive data: %w", err)
 	}
-
 	return data, nil
 }
 
@@ -79,7 +77,6 @@ func (c *Cache) ReferenceTable(indexID IndexID) (*IndexMetadata, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating reference table metadata: %w", err)
 	}
-
 	return meta, nil
 }
 
@@ -94,12 +91,12 @@ func (c *Cache) EntityCount(indexID IndexID, archiveID ArchiveID) (int, error) {
 func (c *Cache) ItemDefinitions() (ItemDefinitions, error) {
 	entryCount, err := c.EntityCount(2, 10)
 	if err != nil {
-		return nil, fmt.Errorf("getting entity count: %w", err)
+		return nil, fmt.Errorf("getting item entity count: %w", err)
 	}
 
 	group, err := c.ArchiveGroup(2, 10, entryCount)
 	if err != nil {
-		return nil, fmt.Errorf("getting item definitions: %w", err)
+		return nil, fmt.Errorf("getting items archive group: %w", err)
 	}
 
 	definitions := make(ItemDefinitions, len(group.Files))
@@ -110,7 +107,6 @@ func (c *Cache) ItemDefinitions() (ItemDefinitions, error) {
 		}
 		definitions[uint16(file.ID)] = def
 	}
-
 	return definitions, nil
 }
 
@@ -125,12 +121,12 @@ func (c *Cache) ExportItemDefinitions(outputDir, mode, filename string) error {
 func (c *Cache) NPCDefinitions() (NPCDefinitions, error) {
 	entryCount, err := c.EntityCount(2, 9)
 	if err != nil {
-		return nil, fmt.Errorf("getting entity count: %w", err)
+		return nil, fmt.Errorf("getting npc entity count: %w", err)
 	}
 
 	group, err := c.ArchiveGroup(2, 9, entryCount)
 	if err != nil {
-		return nil, fmt.Errorf("getting npc definitions: %w", err)
+		return nil, fmt.Errorf("getting npcs archive group: %w", err)
 	}
 
 	definitions := make(NPCDefinitions, len(group.Files))
@@ -141,14 +137,43 @@ func (c *Cache) NPCDefinitions() (NPCDefinitions, error) {
 		}
 		definitions[uint16(file.ID)] = def
 	}
-
 	return definitions, nil
 }
 
 func (c *Cache) ExportNPCDefinitions(outputDir, mode, filename string) error {
 	npcs, err := c.NPCDefinitions()
 	if err != nil {
-		return fmt.Errorf("getting NPC definitions: %w", err)
+		return fmt.Errorf("getting npc definitions: %w", err)
+	}
+	return NewExporter(npcs, outputDir).ExportToJSON(mode, filename)
+}
+
+func (c *Cache) ObjectDefinitions() (ObjectDefinitions, error) {
+	entryCount, err := c.EntityCount(2, 6)
+	if err != nil {
+		return nil, fmt.Errorf("getting object entity count: %w", err)
+	}
+
+	group, err := c.ArchiveGroup(2, 6, entryCount)
+	if err != nil {
+		return nil, fmt.Errorf("getting objects archive group: %w", err)
+	}
+
+	definitions := make(ObjectDefinitions, len(group.Files))
+	for _, file := range group.Files {
+		def, err := NewObjectDefinition(uint16(file.ID), file.Data)
+		if err != nil {
+			return nil, fmt.Errorf("creating object definition: %w", err)
+		}
+		definitions[uint16(file.ID)] = def
+	}
+	return definitions, nil
+}
+
+func (c *Cache) ExportObjectDefinitions(outputDir, mode, filename string) error {
+	npcs, err := c.ObjectDefinitions()
+	if err != nil {
+		return fmt.Errorf("getting object definitions: %w", err)
 	}
 	return NewExporter(npcs, outputDir).ExportToJSON(mode, filename)
 }
