@@ -49,7 +49,6 @@ func NewIndices(path string) (*Indices, error) {
 	if err != nil {
 		return nil, fmt.Errorf("walking cache directory: %w", err)
 	}
-
 	return indices, nil
 }
 
@@ -86,7 +85,6 @@ func (i *Indices) IndexIDs() []uint8 {
 type Index struct {
 	ID          IndexID
 	ArchiveRefs map[ArchiveID]*ArchiveRef
-	Metadata    *IndexMetadata
 	mu          sync.RWMutex
 }
 
@@ -107,11 +105,11 @@ func NewIndex(id IndexID, file string) (*Index, error) {
 		}
 
 		archiveID := ArchiveID(i / ArchiveRefLen)
+
 		archiveRef, err := NewArchiveRef(id, archiveID, data[i:i+ArchiveRefLen])
 		if err != nil {
 			return nil, fmt.Errorf("parsing archive ref: %w", err)
 		}
-
 		index.ArchiveRefs[archiveID] = archiveRef
 	}
 	return index, nil

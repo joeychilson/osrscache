@@ -9,77 +9,48 @@ import (
 
 type BinaryReader struct {
 	reader io.ReadSeeker
-	offset int64
 }
 
 func NewBinaryReader(data []byte) *BinaryReader {
 	return &BinaryReader{
 		reader: bytes.NewReader(data),
-		offset: 0,
 	}
 }
 
-func (br *BinaryReader) Seek(offset int64, whence int) (int64, error) {
-	newOffset, err := br.reader.Seek(offset, whence)
-	if err != nil {
-		return 0, err
-	}
-	br.offset = newOffset
-	return newOffset, nil
-}
-
-func (br *BinaryReader) GetOffset() int64 {
-	return br.offset
+func (br *BinaryReader) ReadByte() (byte, error) {
+	var value byte
+	err := binary.Read(br.reader, binary.BigEndian, &value)
+	return value, err
 }
 
 func (br *BinaryReader) ReadUint8() (uint8, error) {
 	var value uint8
 	err := binary.Read(br.reader, binary.BigEndian, &value)
-	if err != nil {
-		return 0, err
-	}
-	br.offset += 1
-	return value, nil
+	return value, err
 }
 
 func (br *BinaryReader) ReadInt8() (int8, error) {
 	var value int8
 	err := binary.Read(br.reader, binary.BigEndian, &value)
-	if err != nil {
-		return 0, err
-	}
-	br.offset += 1
-	return value, nil
+	return value, err
 }
 
 func (br *BinaryReader) ReadUint16() (uint16, error) {
 	var value uint16
 	err := binary.Read(br.reader, binary.BigEndian, &value)
-	if err != nil {
-		return 0, err
-	}
-	br.offset += 2
-	return value, nil
+	return value, err
 }
 
 func (br *BinaryReader) ReadInt16() (int16, error) {
 	var value int16
 	err := binary.Read(br.reader, binary.BigEndian, &value)
-	if err != nil {
-		return 0, err
-	}
-	br.offset += 2
-	return value, nil
+	return value, err
 }
 
 func (br *BinaryReader) ReadUint32() (uint32, error) {
 	var value uint32
 	err := binary.Read(br.reader, binary.BigEndian, &value)
-	if err != nil {
-		return 0, err
-	}
-	br.offset += 4
-	return value, nil
+	return value, err
 }
 
 func (br *BinaryReader) ReadUint24() (uint32, error) {
@@ -88,18 +59,13 @@ func (br *BinaryReader) ReadUint24() (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
-	br.offset += 3
 	return uint32(buf[0])<<16 | uint32(buf[1])<<8 | uint32(buf[2]), nil
 }
 
 func (br *BinaryReader) ReadInt32() (int32, error) {
 	var value int32
 	err := binary.Read(br.reader, binary.BigEndian, &value)
-	if err != nil {
-		return 0, err
-	}
-	br.offset += 4
-	return value, nil
+	return value, err
 }
 
 func (br *BinaryReader) ReadBigSmart2() (int32, error) {
@@ -144,4 +110,8 @@ func (br *BinaryReader) ReadString() (string, error) {
 		result = append(result, b)
 	}
 	return string(result), nil
+}
+
+func (br *BinaryReader) Seek(offset int64, whence int) (int64, error) {
+	return br.reader.Seek(offset, whence)
 }

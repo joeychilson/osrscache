@@ -115,7 +115,7 @@ func (c *Cache) ExportItemDefinitions(outputDir, mode, filename string) error {
 	if err != nil {
 		return fmt.Errorf("getting item definitions: %w", err)
 	}
-	return NewExporter(items, outputDir).ExportToJSON(mode, filename)
+	return NewJSONExporter(items, outputDir).ExportToJSON(mode, filename)
 }
 
 func (c *Cache) NPCDefinitions() (NPCDefinitions, error) {
@@ -145,7 +145,7 @@ func (c *Cache) ExportNPCDefinitions(outputDir, mode, filename string) error {
 	if err != nil {
 		return fmt.Errorf("getting npc definitions: %w", err)
 	}
-	return NewExporter(npcs, outputDir).ExportToJSON(mode, filename)
+	return NewJSONExporter(npcs, outputDir).ExportToJSON(mode, filename)
 }
 
 func (c *Cache) ObjectDefinitions() (ObjectDefinitions, error) {
@@ -175,7 +175,42 @@ func (c *Cache) ExportObjectDefinitions(outputDir, mode, filename string) error 
 	if err != nil {
 		return fmt.Errorf("getting object definitions: %w", err)
 	}
-	return NewExporter(npcs, outputDir).ExportToJSON(mode, filename)
+	return NewJSONExporter(npcs, outputDir).ExportToJSON(mode, filename)
+}
+
+func (c *Cache) Sprites() (Sprites, error) {
+	index, err := c.Indices.Get(8)
+	if err != nil {
+		return nil, fmt.Errorf("getting index: %w", err)
+	}
+
+	sprites := make(Sprites, len(index.ArchiveIDs()))
+	for _, id := range index.ArchiveIDs() {
+		archiveData, err := c.ArchiveData(8, id)
+		if err != nil {
+			return nil, fmt.Errorf("reading sprite archive: %w", err)
+		}
+
+		decompressedData, err := DecompressArchiveData(archiveData)
+		if err != nil {
+			return nil, fmt.Errorf("decompressing sprite archive: %w", err)
+		}
+
+		sprite, err := NewSprite(uint32(id), decompressedData)
+		if err != nil {
+			return nil, fmt.Errorf("creating sprite: %w", err)
+		}
+		sprites[uint32(id)] = sprite
+	}
+	return sprites, nil
+}
+
+func (c *Cache) ExportSprites(outputDir string) error {
+	sprites, err := c.Sprites()
+	if err != nil {
+		return fmt.Errorf("getting sprites: %w", err)
+	}
+	return NewImageExporter(sprites, outputDir).ExportToImage("sprite")
 }
 
 func (c *Cache) Close() error {

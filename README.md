@@ -41,3 +41,4 @@ func main() {
 - [rune-fs](https://github.com/jimvdl/rune-fs)
 - [runelite](https://github.com/runelite/runelite)
 - [osrs-wiki](https://github.com/osrs-wiki/cache-mediawiki)
+- [openrs2](https://github.com/openrs2/openrs2)
