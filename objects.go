@@ -112,18 +112,15 @@ func (def *ObjectDefinition) Read(data []byte) error {
 			def.ModelData.Models = make([]uint16, length)
 			def.ModelData.Types = make([]uint8, length)
 			for i := 0; i < int(length); i++ {
-				def.ModelData.Models[i], err = reader.ReadUint16()
-				if err != nil {
+				if def.ModelData.Models[i], err = reader.ReadUint16(); err != nil {
 					return fmt.Errorf("reading model: %w", err)
 				}
-				def.ModelData.Types[i], err = reader.ReadUint8()
-				if err != nil {
+				if def.ModelData.Types[i], err = reader.ReadUint8(); err != nil {
 					return fmt.Errorf("reading model type: %w", err)
 				}
 			}
 		case 2:
-			def.Name, err = reader.ReadString()
-			if err != nil {
+			if def.Name, err = reader.ReadString(); err != nil {
 				return fmt.Errorf("reading name: %w", err)
 			}
 		case 5:
@@ -134,19 +131,16 @@ func (def *ObjectDefinition) Read(data []byte) error {
 			clear(def.ModelData.Types)
 			def.ModelData.Models = make([]uint16, length)
 			for i := 0; i < int(length); i++ {
-				def.ModelData.Models[i], err = reader.ReadUint16()
-				if err != nil {
+				if def.ModelData.Models[i], err = reader.ReadUint16(); err != nil {
 					return fmt.Errorf("reading model: %w", err)
 				}
 			}
 		case 14:
-			def.ModelData.SizeX, err = reader.ReadUint8()
-			if err != nil {
+			if def.ModelData.SizeX, err = reader.ReadUint8(); err != nil {
 				return fmt.Errorf("reading size x: %w", err)
 			}
 		case 15:
-			def.ModelData.SizeY, err = reader.ReadUint8()
-			if err != nil {
+			if def.ModelData.SizeY, err = reader.ReadUint8(); err != nil {
 				return fmt.Errorf("reading size y: %w", err)
 			}
 		case 17:
@@ -155,8 +149,7 @@ func (def *ObjectDefinition) Read(data []byte) error {
 		case 18:
 			def.BlocksProjectile = false
 		case 19:
-			def.WallOrDoor, err = reader.ReadUint8()
-			if err != nil {
+			if def.WallOrDoor, err = reader.ReadUint8(); err != nil {
 				return fmt.Errorf("reading wall or door: %w", err)
 			}
 		case 21:
@@ -164,30 +157,25 @@ func (def *ObjectDefinition) Read(data []byte) error {
 		case 22:
 			def.ModelData.MergeNormals = true
 		case 24:
-			def.AnimationID, err = reader.ReadUint16()
-			if err != nil {
+			if def.AnimationID, err = reader.ReadUint16(); err != nil {
 				return fmt.Errorf("reading animation id: %w", err)
 			}
 		case 27:
 			def.InteractType = 1
 		case 28:
-			def.ModelData.DecordDisplacement, err = reader.ReadUint8()
-			if err != nil {
+			if def.ModelData.DecordDisplacement, err = reader.ReadUint8(); err != nil {
 				return fmt.Errorf("reading decord displacement: %w", err)
 			}
 		case 29:
-			def.ModelData.Ambient, err = reader.ReadUint8()
-			if err != nil {
+			if def.ModelData.Ambient, err = reader.ReadUint8(); err != nil {
 				return fmt.Errorf("reading ambient (29): %w", err)
 			}
 		case 30, 31, 32, 33, 34:
-			def.Actions[opcode-30], err = reader.ReadString()
-			if err != nil {
+			if def.Actions[opcode-30], err = reader.ReadString(); err != nil {
 				return fmt.Errorf("reading action: %w", err)
 			}
 		case 39:
-			def.ModelData.Contrast, err = reader.ReadUint8()
-			if err != nil {
+			if def.ModelData.Contrast, err = reader.ReadUint8(); err != nil {
 				return fmt.Errorf("reading contrast: %w", err)
 			}
 		case 40:
@@ -198,12 +186,10 @@ func (def *ObjectDefinition) Read(data []byte) error {
 			def.ModelData.RecolorFrom = make([]uint16, length)
 			def.ModelData.RecolorTo = make([]uint16, length)
 			for i := 0; i < int(length); i++ {
-				def.ModelData.RecolorFrom[i], err = reader.ReadUint16()
-				if err != nil {
+				if def.ModelData.RecolorFrom[i], err = reader.ReadUint16(); err != nil {
 					return fmt.Errorf("reading recolor from: %w", err)
 				}
-				def.ModelData.RecolorTo[i], err = reader.ReadUint16()
-				if err != nil {
+				if def.ModelData.RecolorTo[i], err = reader.ReadUint16(); err != nil {
 					return fmt.Errorf("reading recolor to: %w", err)
 				}
 			}
@@ -215,18 +201,15 @@ func (def *ObjectDefinition) Read(data []byte) error {
 			def.ModelData.RetextureFrom = make([]uint16, length)
 			def.ModelData.RetextureTo = make([]uint16, length)
 			for i := 0; i < int(length); i++ {
-				def.ModelData.RetextureFrom[i], err = reader.ReadUint16()
-				if err != nil {
+				if def.ModelData.RetextureFrom[i], err = reader.ReadUint16(); err != nil {
 					return fmt.Errorf("reading retexture from: %w", err)
 				}
-				def.ModelData.RetextureTo[i], err = reader.ReadUint16()
-				if err != nil {
+				if def.ModelData.RetextureTo[i], err = reader.ReadUint16(); err != nil {
 					return fmt.Errorf("reading retexture to: %w", err)
 				}
 			}
 		case 61:
-			def.Category, err = reader.ReadUint16()
-			if err != nil {
+			if def.Category, err = reader.ReadUint16(); err != nil {
 				return fmt.Errorf("reading category: %w", err)
 			}
 		case 62:
@@ -234,43 +217,35 @@ func (def *ObjectDefinition) Read(data []byte) error {
 		case 64:
 			def.Shadow = false
 		case 65:
-			def.ModelData.ModelSizeX, err = reader.ReadUint16()
-			if err != nil {
+			if def.ModelData.ModelSizeX, err = reader.ReadUint16(); err != nil {
 				return fmt.Errorf("reading model size x: %w", err)
 			}
 		case 66:
-			def.ModelData.ModelSizeZ, err = reader.ReadUint16()
-			if err != nil {
+			if def.ModelData.ModelSizeZ, err = reader.ReadUint16(); err != nil {
 				return fmt.Errorf("reading model size height: %w", err)
 			}
 		case 67:
-			def.ModelData.ModelSizeY, err = reader.ReadUint16()
-			if err != nil {
+			if def.ModelData.ModelSizeY, err = reader.ReadUint16(); err != nil {
 				return fmt.Errorf("reading model size y: %w", err)
 			}
 		case 68:
-			def.MapSceneID, err = reader.ReadUint16()
-			if err != nil {
+			if def.MapSceneID, err = reader.ReadUint16(); err != nil {
 				return fmt.Errorf("reading map scene id: %w", err)
 			}
 		case 69:
-			def.ModelData.BlockingMask, err = reader.ReadUint8()
-			if err != nil {
+			if def.ModelData.BlockingMask, err = reader.ReadUint8(); err != nil {
 				return fmt.Errorf("reading blocking mask: %w", err)
 			}
 		case 70:
-			def.ModelData.OffsetX, err = reader.ReadUint16()
-			if err != nil {
+			if def.ModelData.OffsetX, err = reader.ReadUint16(); err != nil {
 				return fmt.Errorf("reading offset x: %w", err)
 			}
 		case 71:
-			def.ModelData.OffsetZ, err = reader.ReadUint16()
-			if err != nil {
+			if def.ModelData.OffsetZ, err = reader.ReadUint16(); err != nil {
 				return fmt.Errorf("reading offset z: %w", err)
 			}
 		case 72:
-			def.ModelData.OffsetY, err = reader.ReadUint16()
-			if err != nil {
+			if def.ModelData.OffsetY, err = reader.ReadUint16(); err != nil {
 				return fmt.Errorf("reading offset y: %w", err)
 			}
 		case 73:
@@ -278,20 +253,17 @@ func (def *ObjectDefinition) Read(data []byte) error {
 		case 74:
 			def.Solid = false
 		case 75:
-			def.SupportsItems, err = reader.ReadUint8()
-			if err != nil {
+			if def.SupportsItems, err = reader.ReadUint8(); err != nil {
 				return fmt.Errorf("reading supports items: %w", err)
 			}
 		case 77:
-			def.ModelData.VarpID, err = reader.ReadUint16()
-			if err != nil {
+			if def.ModelData.VarpID, err = reader.ReadUint16(); err != nil {
 				return fmt.Errorf("reading varp id (77): %w", err)
 			}
 			if def.ModelData.VarpID == math.MaxUint16 {
 				def.ModelData.VarpID = 0
 			}
-			def.ConfigID, err = reader.ReadUint16()
-			if err != nil {
+			if def.ConfigID, err = reader.ReadUint16(); err != nil {
 				return fmt.Errorf("reading config id (77): %w", err)
 			}
 			if def.ConfigID == math.MaxUint16 {
@@ -303,8 +275,7 @@ func (def *ObjectDefinition) Read(data []byte) error {
 			}
 			def.ConfigChangeDest = make([]uint16, int(length)+2)
 			for i := 0; i <= int(length); i++ {
-				def.ConfigChangeDest[i], err = reader.ReadUint16()
-				if err != nil {
+				if def.ConfigChangeDest[i], err = reader.ReadUint16(); err != nil {
 					return fmt.Errorf("reading config change dest (77): %w", err)
 				}
 				if def.ConfigChangeDest[i] == math.MaxUint16 {
@@ -313,33 +284,26 @@ func (def *ObjectDefinition) Read(data []byte) error {
 			}
 			def.ConfigChangeDest[length+1] = 0
 		case 78:
-			def.AmbientSoundID, err = reader.ReadUint16()
-			if err != nil {
+			if def.AmbientSoundID, err = reader.ReadUint16(); err != nil {
 				return fmt.Errorf("reading ambient sound id (78): %w", err)
 			}
-			def.AmbientSoundDistance, err = reader.ReadUint8()
-			if err != nil {
+			if def.AmbientSoundDistance, err = reader.ReadUint8(); err != nil {
 				return fmt.Errorf("reading ambient sound distance (78): %w", err)
 			}
-			def.AmbientSoundRetain, err = reader.ReadUint8()
-			if err != nil {
+			if def.AmbientSoundRetain, err = reader.ReadUint8(); err != nil {
 				return fmt.Errorf("reading ambient sound retain: %w", err)
 			}
 		case 79:
-			def.AmbientSoundChangeTicksMin, err = reader.ReadUint16()
-			if err != nil {
+			if def.AmbientSoundChangeTicksMin, err = reader.ReadUint16(); err != nil {
 				return fmt.Errorf("reading ambient sound change ticks min: %w", err)
 			}
-			def.AmbientSoundChangeTicksMax, err = reader.ReadUint16()
-			if err != nil {
+			if def.AmbientSoundChangeTicksMax, err = reader.ReadUint16(); err != nil {
 				return fmt.Errorf("reading ambient sound change ticks max: %w", err)
 			}
-			def.AmbientSoundDistance, err = reader.ReadUint8()
-			if err != nil {
+			if def.AmbientSoundDistance, err = reader.ReadUint8(); err != nil {
 				return fmt.Errorf("reading ambient sound distance (79): %w", err)
 			}
-			def.AmbientSoundRetain, err = reader.ReadUint8()
-			if err != nil {
+			if def.AmbientSoundRetain, err = reader.ReadUint8(); err != nil {
 				return fmt.Errorf("reading ambient sound retain: %w", err)
 			}
 			length, err := reader.ReadUint8()
@@ -348,28 +312,23 @@ func (def *ObjectDefinition) Read(data []byte) error {
 			}
 			def.AmbientSoundIDs = make([]uint16, length)
 			for i := 0; i < int(length); i++ {
-				def.AmbientSoundIDs[i], err = reader.ReadUint16()
-				if err != nil {
+				if def.AmbientSoundIDs[i], err = reader.ReadUint16(); err != nil {
 					return fmt.Errorf("reading ambient sound ids: %w", err)
 				}
 			}
 		case 81:
-			def.ContouredGround, err = reader.ReadUint8()
-			if err != nil {
+			if def.ContouredGround, err = reader.ReadUint8(); err != nil {
 				return fmt.Errorf("reading contoured ground: %w", err)
 			}
 		case 82:
-			def.MapAreaID, err = reader.ReadUint16()
-			if err != nil {
+			if def.MapAreaID, err = reader.ReadUint16(); err != nil {
 				return fmt.Errorf("reading map area id: %w", err)
 			}
 		case 92:
-			def.ModelData.VarpID, err = reader.ReadUint16()
-			if err != nil {
+			if def.ModelData.VarpID, err = reader.ReadUint16(); err != nil {
 				return fmt.Errorf("reading varp id (92): %w", err)
 			}
-			def.ConfigID, err = reader.ReadUint16()
-			if err != nil {
+			if def.ConfigID, err = reader.ReadUint16(); err != nil {
 				return fmt.Errorf("reading config id (92): %w", err)
 			}
 			var varValue uint16
@@ -386,8 +345,7 @@ func (def *ObjectDefinition) Read(data []byte) error {
 			}
 			def.ConfigChangeDest = make([]uint16, int(length)+2)
 			for i := 0; i <= int(length); i++ {
-				def.ConfigChangeDest[i], err = reader.ReadUint16()
-				if err != nil {
+				if def.ConfigChangeDest[i], err = reader.ReadUint16(); err != nil {
 					return fmt.Errorf("reading config change dest at index %d (92): %w", i, err)
 				}
 			}
