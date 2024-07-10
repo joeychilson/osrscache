@@ -110,11 +110,11 @@ func (s *Sprite) Read(data []byte) error {
 
 	s.Palette = make([]uint32, paletteLength)
 	for i := range s.Palette {
-		var color [3]byte
-		if _, err := reader.Read(color[:]); err != nil {
+		color, err := ReadUint24(reader)
+		if err != nil {
 			return fmt.Errorf("reading palette: %w", err)
 		}
-		s.Palette[i] = uint32(color[0])<<16 | uint32(color[1])<<8 | uint32(color[2])
+		s.Palette[i] = color
 	}
 
 	s.Frames = make([]*Frame, frameLength)

@@ -367,11 +367,10 @@ func (def *ObjectDefinition) Read(data []byte) error {
 					return fmt.Errorf("reading is string: %w", err)
 				}
 
-				var keyBuf [3]byte
-				if _, err := io.ReadFull(reader, keyBuf[:]); err != nil {
+				key, err := ReadUint24(reader)
+				if err != nil {
 					return fmt.Errorf("reading key: %w", err)
 				}
-				key := uint32(keyBuf[0])<<16 | uint32(keyBuf[1])<<8 | uint32(keyBuf[2])
 
 				var value interface{}
 				if isString == 1 {
