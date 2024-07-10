@@ -1,6 +1,8 @@
 package osrscache
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"image"
 	"image/color"
@@ -42,34 +44,33 @@ func NewSprite(id uint32, data []byte) (*Sprite, error) {
 }
 
 func (s *Sprite) Read(data []byte) error {
-	reader := NewBinaryReader(data)
-	dataLen := int64(len(data))
+	reader := bytes.NewReader(data)
 
-	if _, err := reader.Seek(dataLen-2, io.SeekStart); err != nil {
+	if _, err := reader.Seek(reader.Size()-2, io.SeekStart); err != nil {
 		return fmt.Errorf("seeking to frame length: %w", err)
 	}
 
-	frameLength, err := reader.ReadUint16()
-	if err != nil {
+	var frameLength uint16
+	if err := binary.Read(reader, binary.BigEndian, &frameLength); err != nil {
 		return fmt.Errorf("reading frame length: %w", err)
 	}
 
 	trailerLen := int64(frameLength*8 + 7)
 
-	if _, err := reader.Seek(dataLen-trailerLen, io.SeekStart); err != nil {
+	if _, err := reader.Seek(reader.Size()-trailerLen, io.SeekStart); err != nil {
 		return fmt.Errorf("seeking to trailer start: %w", err)
 	}
 
-	if s.Width, err = reader.ReadUint16(); err != nil {
+	if err := binary.Read(reader, binary.BigEndian, &s.Width); err != nil {
 		return fmt.Errorf("reading width: %w", err)
 	}
 
-	if s.Height, err = reader.ReadUint16(); err != nil {
+	if err := binary.Read(reader, binary.BigEndian, &s.Height); err != nil {
 		return fmt.Errorf("reading height: %w", err)
 	}
 
-	paletteLength, err := reader.ReadUint8()
-	if err != nil {
+	var paletteLength uint8
+	if err := binary.Read(reader, binary.BigEndian, &paletteLength); err != nil {
 		return fmt.Errorf("reading palette length: %w", err)
 	}
 
@@ -77,46 +78,43 @@ func (s *Sprite) Read(data []byte) error {
 
 	xOffsets := make([]uint16, frameLength)
 	for i := range xOffsets {
-		xOffsets[i], err = reader.ReadUint16()
-		if err != nil {
+		if err := binary.Read(reader, binary.BigEndian, &xOffsets[i]); err != nil {
 			return fmt.Errorf("reading x offset: %w", err)
 		}
 	}
 
 	yOffsets := make([]uint16, frameLength)
 	for i := range yOffsets {
-		yOffsets[i], err = reader.ReadUint16()
-		if err != nil {
+		if err := binary.Read(reader, binary.BigEndian, &yOffsets[i]); err != nil {
 			return fmt.Errorf("reading y offset: %w", err)
 		}
 	}
 
 	maxWidths := make([]uint16, frameLength)
 	for i := range maxWidths {
-		maxWidths[i], err = reader.ReadUint16()
-		if err != nil {
+		if err := binary.Read(reader, binary.BigEndian, &maxWidths[i]); err != nil {
 			return fmt.Errorf("reading max width: %w", err)
 		}
 	}
 
 	maxHeights := make([]uint16, frameLength)
 	for i := range maxHeights {
-		maxHeights[i], err = reader.ReadUint16()
-		if err != nil {
+		if err := binary.Read(reader, binary.BigEndian, &maxHeights[i]); err != nil {
 			return fmt.Errorf("reading max height: %w", err)
 		}
 	}
 
-	if _, err := reader.Seek(dataLen-trailerLen, io.SeekStart); err != nil {
+	if _, err := reader.Seek(reader.Size()-trailerLen, io.SeekStart); err != nil {
 		return fmt.Errorf("seeking to palette start: %w", err)
 	}
 
 	s.Palette = make([]uint32, paletteLength)
 	for i := range s.Palette {
-		s.Palette[i], err = reader.ReadUint24()
-		if err != nil {
+		var color [3]byte
+		if _, err := reader.Read(color[:]); err != nil {
 			return fmt.Errorf("reading palette: %w", err)
 		}
+		s.Palette[i] = uint32(color[0])<<16 | uint32(color[1])<<8 | uint32(color[2])
 	}
 
 	s.Frames = make([]*Frame, frameLength)
@@ -192,10 +190,10 @@ func NewFrame(id int, offsetX uint16, offsetY uint16, maxWidth uint16, maxHeight
 }
 
 func (f *Frame) Read(data []byte) error {
-	reader := NewBinaryReader(data)
+	reader := bytes.NewReader(data)
 
-	flags, err := reader.ReadUint8()
-	if err != nil {
+	var flags uint8
+	if err := binary.Read(reader, binary.BigEndian, &flags); err != nil {
 		return fmt.Errorf("reading flags: %w", err)
 	}
 
