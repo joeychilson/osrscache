@@ -115,3 +115,22 @@ func (br *BinaryReader) ReadString() (string, error) {
 func (br *BinaryReader) Seek(offset int64, whence int) (int64, error) {
 	return br.reader.Seek(offset, whence)
 }
+
+func ReadString(r io.Reader) (string, error) {
+	var result []byte
+	for {
+		var b [1]byte
+		_, err := r.Read(b[:])
+		if err != nil {
+			if err == io.EOF && len(result) > 0 {
+				break
+			}
+			return "", err
+		}
+		if b[0] == 0 {
+			break
+		}
+		result = append(result, b[0])
+	}
+	return string(result), nil
+}

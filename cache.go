@@ -110,7 +110,7 @@ func (c *Cache) ItemDefinitions() (ItemDefinitions, error) {
 	return definitions, nil
 }
 
-func (c *Cache) ExportItemDefinitions(outputDir, mode, filename string) error {
+func (c *Cache) ExportItemDefinitions(outputDir string, mode JSONExportMode, filename string) error {
 	items, err := c.ItemDefinitions()
 	if err != nil {
 		return fmt.Errorf("getting item definitions: %w", err)
@@ -140,7 +140,7 @@ func (c *Cache) NPCDefinitions() (NPCDefinitions, error) {
 	return definitions, nil
 }
 
-func (c *Cache) ExportNPCDefinitions(outputDir, mode, filename string) error {
+func (c *Cache) ExportNPCDefinitions(outputDir string, mode JSONExportMode, filename string) error {
 	npcs, err := c.NPCDefinitions()
 	if err != nil {
 		return fmt.Errorf("getting npc definitions: %w", err)
@@ -170,7 +170,7 @@ func (c *Cache) ObjectDefinitions() (ObjectDefinitions, error) {
 	return definitions, nil
 }
 
-func (c *Cache) ExportObjectDefinitions(outputDir, mode, filename string) error {
+func (c *Cache) ExportObjectDefinitions(outputDir string, mode JSONExportMode, filename string) error {
 	npcs, err := c.ObjectDefinitions()
 	if err != nil {
 		return fmt.Errorf("getting object definitions: %w", err)

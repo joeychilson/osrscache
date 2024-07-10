@@ -9,6 +9,13 @@ import (
 	"path/filepath"
 )
 
+type JSONExportMode string
+
+const (
+	JsonExportModeSingle     JSONExportMode = "single"
+	JsonExportModeIndividual JSONExportMode = "individual"
+)
+
 type JSONExporter[K comparable, V any] struct {
 	definitions map[K]V
 	outputDir   string
@@ -52,15 +59,15 @@ func (e *JSONExporter[K, V]) ExportIndividual(prefix string) error {
 	return nil
 }
 
-func (e *JSONExporter[K, V]) ExportToJSON(mode string, filename string) error {
+func (e *JSONExporter[K, V]) ExportToJSON(mode JSONExportMode, filename string) error {
 	if err := os.MkdirAll(e.outputDir, os.ModePerm); err != nil {
 		return fmt.Errorf("creating output directory: %w", err)
 	}
 
 	switch mode {
-	case "single":
+	case JsonExportModeSingle:
 		return e.ExportAll(filename)
-	case "individual":
+	case JsonExportModeIndividual:
 		return e.ExportIndividual(filename)
 	default:
 		return fmt.Errorf("invalid export mode: %s", mode)

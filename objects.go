@@ -1,6 +1,8 @@
 package osrscache
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -91,10 +93,10 @@ func NewObjectDefinition(id uint16, data []byte) (*ObjectDefinition, error) {
 }
 
 func (def *ObjectDefinition) Read(data []byte) error {
-	reader := NewBinaryReader(data)
+	reader := bytes.NewReader(data)
 	for {
-		opcode, err := reader.ReadUint8()
-		if err != nil {
+		var opcode uint8
+		if err := binary.Read(reader, binary.BigEndian, &opcode); err != nil {
 			if errors.Is(err, io.EOF) {
 				break
 			}
@@ -105,42 +107,44 @@ func (def *ObjectDefinition) Read(data []byte) error {
 		}
 		switch opcode {
 		case 1:
-			length, err := reader.ReadUint8()
-			if err != nil {
+			var length uint8
+			if err := binary.Read(reader, binary.BigEndian, &length); err != nil {
 				return fmt.Errorf("reading length: %w", err)
 			}
 			def.ModelData.Models = make([]uint16, length)
 			def.ModelData.Types = make([]uint8, length)
 			for i := 0; i < int(length); i++ {
-				if def.ModelData.Models[i], err = reader.ReadUint16(); err != nil {
+				if err := binary.Read(reader, binary.BigEndian, &def.ModelData.Models[i]); err != nil {
 					return fmt.Errorf("reading model: %w", err)
 				}
-				if def.ModelData.Types[i], err = reader.ReadUint8(); err != nil {
+				if err := binary.Read(reader, binary.BigEndian, &def.ModelData.Types[i]); err != nil {
 					return fmt.Errorf("reading model type: %w", err)
 				}
 			}
 		case 2:
-			if def.Name, err = reader.ReadString(); err != nil {
+			name, err := ReadString(reader)
+			if err != nil {
 				return fmt.Errorf("reading name: %w", err)
 			}
+			def.Name = name
 		case 5:
-			length, err := reader.ReadUint8()
-			if err != nil {
+			var length uint8
+			if err := binary.Read(reader, binary.BigEndian, &length); err != nil {
 				return fmt.Errorf("reading length: %w", err)
 			}
 			clear(def.ModelData.Types)
 			def.ModelData.Models = make([]uint16, length)
 			for i := 0; i < int(length); i++ {
-				if def.ModelData.Models[i], err = reader.ReadUint16(); err != nil {
+				if err := binary.Read(reader, binary.BigEndian, &def.ModelData.Models[i]); err != nil {
 					return fmt.Errorf("reading model: %w", err)
 				}
 			}
 		case 14:
-			if def.ModelData.SizeX, err = reader.ReadUint8(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.ModelData.SizeX); err != nil {
 				return fmt.Errorf("reading size x: %w", err)
 			}
 		case 15:
-			if def.ModelData.SizeY, err = reader.ReadUint8(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.ModelData.SizeY); err != nil {
 				return fmt.Errorf("reading size y: %w", err)
 			}
 		case 17:
@@ -149,7 +153,7 @@ func (def *ObjectDefinition) Read(data []byte) error {
 		case 18:
 			def.BlocksProjectile = false
 		case 19:
-			if def.WallOrDoor, err = reader.ReadUint8(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.WallOrDoor); err != nil {
 				return fmt.Errorf("reading wall or door: %w", err)
 			}
 		case 21:
@@ -157,59 +161,61 @@ func (def *ObjectDefinition) Read(data []byte) error {
 		case 22:
 			def.ModelData.MergeNormals = true
 		case 24:
-			if def.AnimationID, err = reader.ReadUint16(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.AnimationID); err != nil {
 				return fmt.Errorf("reading animation id: %w", err)
 			}
 		case 27:
 			def.InteractType = 1
 		case 28:
-			if def.ModelData.DecordDisplacement, err = reader.ReadUint8(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.ModelData.DecordDisplacement); err != nil {
 				return fmt.Errorf("reading decord displacement: %w", err)
 			}
 		case 29:
-			if def.ModelData.Ambient, err = reader.ReadUint8(); err != nil {
-				return fmt.Errorf("reading ambient (29): %w", err)
+			if err := binary.Read(reader, binary.BigEndian, &def.ModelData.Ambient); err != nil {
+				return fmt.Errorf("reading ambient: %w", err)
 			}
 		case 30, 31, 32, 33, 34:
-			if def.Actions[opcode-30], err = reader.ReadString(); err != nil {
+			action, err := ReadString(reader)
+			if err != nil {
 				return fmt.Errorf("reading action: %w", err)
 			}
+			def.Actions[opcode-30] = action
 		case 39:
-			if def.ModelData.Contrast, err = reader.ReadUint8(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.ModelData.Contrast); err != nil {
 				return fmt.Errorf("reading contrast: %w", err)
 			}
 		case 40:
-			length, err := reader.ReadUint8()
-			if err != nil {
+			var length uint8
+			if err := binary.Read(reader, binary.BigEndian, &length); err != nil {
 				return fmt.Errorf("reading length: %w", err)
 			}
 			def.ModelData.RecolorFrom = make([]uint16, length)
 			def.ModelData.RecolorTo = make([]uint16, length)
 			for i := 0; i < int(length); i++ {
-				if def.ModelData.RecolorFrom[i], err = reader.ReadUint16(); err != nil {
+				if err := binary.Read(reader, binary.BigEndian, &def.ModelData.RecolorFrom[i]); err != nil {
 					return fmt.Errorf("reading recolor from: %w", err)
 				}
-				if def.ModelData.RecolorTo[i], err = reader.ReadUint16(); err != nil {
+				if err := binary.Read(reader, binary.BigEndian, &def.ModelData.RecolorTo[i]); err != nil {
 					return fmt.Errorf("reading recolor to: %w", err)
 				}
 			}
 		case 41:
-			length, err := reader.ReadUint8()
-			if err != nil {
+			var length uint8
+			if err := binary.Read(reader, binary.BigEndian, &length); err != nil {
 				return fmt.Errorf("reading length: %w", err)
 			}
 			def.ModelData.RetextureFrom = make([]uint16, length)
 			def.ModelData.RetextureTo = make([]uint16, length)
 			for i := 0; i < int(length); i++ {
-				if def.ModelData.RetextureFrom[i], err = reader.ReadUint16(); err != nil {
+				if err := binary.Read(reader, binary.BigEndian, &def.ModelData.RetextureFrom[i]); err != nil {
 					return fmt.Errorf("reading retexture from: %w", err)
 				}
-				if def.ModelData.RetextureTo[i], err = reader.ReadUint16(); err != nil {
+				if err := binary.Read(reader, binary.BigEndian, &def.ModelData.RetextureTo[i]); err != nil {
 					return fmt.Errorf("reading retexture to: %w", err)
 				}
 			}
 		case 61:
-			if def.Category, err = reader.ReadUint16(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.Category); err != nil {
 				return fmt.Errorf("reading category: %w", err)
 			}
 		case 62:
@@ -217,35 +223,35 @@ func (def *ObjectDefinition) Read(data []byte) error {
 		case 64:
 			def.Shadow = false
 		case 65:
-			if def.ModelData.ModelSizeX, err = reader.ReadUint16(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.ModelData.ModelSizeX); err != nil {
 				return fmt.Errorf("reading model size x: %w", err)
 			}
 		case 66:
-			if def.ModelData.ModelSizeZ, err = reader.ReadUint16(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.ModelData.ModelSizeZ); err != nil {
 				return fmt.Errorf("reading model size height: %w", err)
 			}
 		case 67:
-			if def.ModelData.ModelSizeY, err = reader.ReadUint16(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.ModelData.ModelSizeY); err != nil {
 				return fmt.Errorf("reading model size y: %w", err)
 			}
 		case 68:
-			if def.MapSceneID, err = reader.ReadUint16(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.MapSceneID); err != nil {
 				return fmt.Errorf("reading map scene id: %w", err)
 			}
 		case 69:
-			if def.ModelData.BlockingMask, err = reader.ReadUint8(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.ModelData.BlockingMask); err != nil {
 				return fmt.Errorf("reading blocking mask: %w", err)
 			}
 		case 70:
-			if def.ModelData.OffsetX, err = reader.ReadUint16(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.ModelData.OffsetX); err != nil {
 				return fmt.Errorf("reading offset x: %w", err)
 			}
 		case 71:
-			if def.ModelData.OffsetZ, err = reader.ReadUint16(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.ModelData.OffsetZ); err != nil {
 				return fmt.Errorf("reading offset z: %w", err)
 			}
 		case 72:
-			if def.ModelData.OffsetY, err = reader.ReadUint16(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.ModelData.OffsetY); err != nil {
 				return fmt.Errorf("reading offset y: %w", err)
 			}
 		case 73:
@@ -253,30 +259,30 @@ func (def *ObjectDefinition) Read(data []byte) error {
 		case 74:
 			def.Solid = false
 		case 75:
-			if def.SupportsItems, err = reader.ReadUint8(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.SupportsItems); err != nil {
 				return fmt.Errorf("reading supports items: %w", err)
 			}
 		case 77:
-			if def.ModelData.VarpID, err = reader.ReadUint16(); err != nil {
-				return fmt.Errorf("reading varp id (77): %w", err)
+			if err := binary.Read(reader, binary.BigEndian, &def.ModelData.VarpID); err != nil {
+				return fmt.Errorf("reading varp id: %w", err)
 			}
 			if def.ModelData.VarpID == math.MaxUint16 {
 				def.ModelData.VarpID = 0
 			}
-			if def.ConfigID, err = reader.ReadUint16(); err != nil {
-				return fmt.Errorf("reading config id (77): %w", err)
+			if err := binary.Read(reader, binary.BigEndian, &def.ConfigID); err != nil {
+				return fmt.Errorf("reading config id: %w", err)
 			}
 			if def.ConfigID == math.MaxUint16 {
 				def.ConfigID = 0
 			}
-			length, err := reader.ReadUint8()
-			if err != nil {
-				return fmt.Errorf("reading config length (77): %w", err)
+			var length uint8
+			if err := binary.Read(reader, binary.BigEndian, &length); err != nil {
+				return fmt.Errorf("reading config length: %w", err)
 			}
 			def.ConfigChangeDest = make([]uint16, int(length)+2)
 			for i := 0; i <= int(length); i++ {
-				if def.ConfigChangeDest[i], err = reader.ReadUint16(); err != nil {
-					return fmt.Errorf("reading config change dest (77): %w", err)
+				if err := binary.Read(reader, binary.BigEndian, &def.ConfigChangeDest[i]); err != nil {
+					return fmt.Errorf("reading config change dest: %w", err)
 				}
 				if def.ConfigChangeDest[i] == math.MaxUint16 {
 					def.ConfigChangeDest[i] = 0
@@ -284,97 +290,104 @@ func (def *ObjectDefinition) Read(data []byte) error {
 			}
 			def.ConfigChangeDest[length+1] = 0
 		case 78:
-			if def.AmbientSoundID, err = reader.ReadUint16(); err != nil {
-				return fmt.Errorf("reading ambient sound id (78): %w", err)
+			if err := binary.Read(reader, binary.BigEndian, &def.AmbientSoundID); err != nil {
+				return fmt.Errorf("reading ambient sound id: %w", err)
 			}
-			if def.AmbientSoundDistance, err = reader.ReadUint8(); err != nil {
-				return fmt.Errorf("reading ambient sound distance (78): %w", err)
+			if err := binary.Read(reader, binary.BigEndian, &def.AmbientSoundDistance); err != nil {
+				return fmt.Errorf("reading ambient sound distance: %w", err)
 			}
-			if def.AmbientSoundRetain, err = reader.ReadUint8(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.AmbientSoundRetain); err != nil {
 				return fmt.Errorf("reading ambient sound retain: %w", err)
 			}
 		case 79:
-			if def.AmbientSoundChangeTicksMin, err = reader.ReadUint16(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.AmbientSoundChangeTicksMin); err != nil {
 				return fmt.Errorf("reading ambient sound change ticks min: %w", err)
 			}
-			if def.AmbientSoundChangeTicksMax, err = reader.ReadUint16(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.AmbientSoundChangeTicksMax); err != nil {
 				return fmt.Errorf("reading ambient sound change ticks max: %w", err)
 			}
-			if def.AmbientSoundDistance, err = reader.ReadUint8(); err != nil {
-				return fmt.Errorf("reading ambient sound distance (79): %w", err)
+			if err := binary.Read(reader, binary.BigEndian, &def.AmbientSoundDistance); err != nil {
+				return fmt.Errorf("reading ambient sound distance: %w", err)
 			}
-			if def.AmbientSoundRetain, err = reader.ReadUint8(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.AmbientSoundRetain); err != nil {
 				return fmt.Errorf("reading ambient sound retain: %w", err)
 			}
-			length, err := reader.ReadUint8()
-			if err != nil {
-				return fmt.Errorf("reading length: %w", err)
+			var length uint8
+			if err := binary.Read(reader, binary.BigEndian, &length); err != nil {
+				return fmt.Errorf("reading ambient sound length: %w", err)
 			}
 			def.AmbientSoundIDs = make([]uint16, length)
 			for i := 0; i < int(length); i++ {
-				if def.AmbientSoundIDs[i], err = reader.ReadUint16(); err != nil {
+				if err := binary.Read(reader, binary.BigEndian, &def.AmbientSoundIDs[i]); err != nil {
 					return fmt.Errorf("reading ambient sound ids: %w", err)
 				}
 			}
 		case 81:
-			if def.ContouredGround, err = reader.ReadUint8(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.ContouredGround); err != nil {
 				return fmt.Errorf("reading contoured ground: %w", err)
 			}
 		case 82:
-			if def.MapAreaID, err = reader.ReadUint16(); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &def.MapAreaID); err != nil {
 				return fmt.Errorf("reading map area id: %w", err)
 			}
 		case 92:
-			if def.ModelData.VarpID, err = reader.ReadUint16(); err != nil {
-				return fmt.Errorf("reading varp id (92): %w", err)
+			if err := binary.Read(reader, binary.BigEndian, &def.ModelData.VarpID); err != nil {
+				return fmt.Errorf("reading varp id: %w", err)
 			}
-			if def.ConfigID, err = reader.ReadUint16(); err != nil {
-				return fmt.Errorf("reading config id (92): %w", err)
+			if err := binary.Read(reader, binary.BigEndian, &def.ConfigID); err != nil {
+				return fmt.Errorf("reading config id: %w", err)
 			}
 			var varValue uint16
-			varValue, err = reader.ReadUint16()
-			if err != nil {
-				return fmt.Errorf("reading var value (92): %w", err)
+			if err := binary.Read(reader, binary.BigEndian, &varValue); err != nil {
+				return fmt.Errorf("reading var value: %w", err)
 			}
 			if varValue == math.MaxUint16 {
 				varValue = 0
 			}
-			length, err := reader.ReadUint8()
-			if err != nil {
-				return fmt.Errorf("reading config length (92): %w", err)
+			var length uint8
+			if err := binary.Read(reader, binary.BigEndian, &length); err != nil {
+				return fmt.Errorf("reading config length: %w", err)
 			}
 			def.ConfigChangeDest = make([]uint16, int(length)+2)
 			for i := 0; i <= int(length); i++ {
-				if def.ConfigChangeDest[i], err = reader.ReadUint16(); err != nil {
-					return fmt.Errorf("reading config change dest at index %d (92): %w", i, err)
+				if err := binary.Read(reader, binary.BigEndian, &def.ConfigChangeDest[i]); err != nil {
+					return fmt.Errorf("reading config change dest: %w", err)
 				}
 			}
 			def.ConfigChangeDest[length+1] = varValue
 		case 249:
-			length, err := reader.ReadUint8()
-			if err != nil {
+			var length uint8
+			if err := binary.Read(reader, binary.BigEndian, &length); err != nil {
 				return fmt.Errorf("reading param length: %w", err)
 			}
 			def.Params = make(map[uint32]any, length)
 			for i := 0; i < int(length); i++ {
-				isString, err := reader.ReadUint8()
-				if err != nil {
-					return err
+				var isString uint8
+				if err := binary.Read(reader, binary.BigEndian, &isString); err != nil {
+					return fmt.Errorf("reading is string: %w", err)
 				}
-				key, err := reader.ReadUint24()
-				if err != nil {
-					return err
+
+				var keyBuf [3]byte
+				if _, err := io.ReadFull(reader, keyBuf[:]); err != nil {
+					return fmt.Errorf("reading key: %w", err)
 				}
+				key := uint32(keyBuf[0])<<16 | uint32(keyBuf[1])<<8 | uint32(keyBuf[2])
+
 				var value interface{}
 				if isString == 1 {
-					value, err = reader.ReadString()
+					strValue, err := ReadString(reader)
+					if err != nil {
+						return fmt.Errorf("reading string value: %w", err)
+					}
+					value = strValue
 				} else {
-					value, err = reader.ReadInt32()
+					var intValue uint32
+					if err := binary.Read(reader, binary.BigEndian, &intValue); err != nil {
+						return fmt.Errorf("reading uint32 value: %w", err)
+					}
+					value = intValue
 				}
-				if err != nil {
-					return err
-				}
-				def.Params[uint32(key)] = value
+				def.Params[key] = value
 			}
 		}
 	}
