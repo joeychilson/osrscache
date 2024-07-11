@@ -14,16 +14,6 @@ const (
 	FlagAlpha       = 0x2
 )
 
-type Sprites map[uint32]*Sprite
-
-func (s Sprites) Get(id uint32) (*Sprite, error) {
-	sprite, ok := s[id]
-	if !ok {
-		return nil, fmt.Errorf("sprite not found")
-	}
-	return sprite, nil
-}
-
 type Sprite struct {
 	ID      uint32   `json:"id"`
 	Width   uint16   `json:"width"`

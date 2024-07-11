@@ -9,16 +9,6 @@ import (
 	"math"
 )
 
-type ObjectDefinitions map[uint16]*ObjectDefinition
-
-func (d ObjectDefinitions) Get(id uint16) (*ObjectDefinition, error) {
-	def, ok := d[id]
-	if !ok {
-		return nil, fmt.Errorf("object definition not found")
-	}
-	return def, nil
-}
-
 type ObjectDefinition struct {
 	ID                         uint16          `json:"id"`
 	Category                   uint16          `json:"category"`

@@ -8,16 +8,6 @@ import (
 	"io"
 )
 
-type ItemDefinitions map[uint16]*ItemDefinition
-
-func (d ItemDefinitions) Get(id uint16) (*ItemDefinition, error) {
-	def, ok := d[id]
-	if !ok {
-		return nil, fmt.Errorf("item definition not found")
-	}
-	return def, nil
-}
-
 type ItemDefinition struct {
 	ID                       uint16             `json:"id"`
 	Category                 uint16             `json:"category"`

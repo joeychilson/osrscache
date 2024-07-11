@@ -88,7 +88,7 @@ func (c *Cache) EntityCount(indexID IndexID, archiveID ArchiveID) (int, error) {
 	return meta.Archives[archiveID-1].EntryCount, nil
 }
 
-func (c *Cache) ItemDefinitions() (ItemDefinitions, error) {
+func (c *Cache) ItemDefinitions() (map[uint16]*ItemDefinition, error) {
 	entryCount, err := c.EntityCount(2, 10)
 	if err != nil {
 		return nil, fmt.Errorf("getting item entity count: %w", err)
@@ -99,7 +99,7 @@ func (c *Cache) ItemDefinitions() (ItemDefinitions, error) {
 		return nil, fmt.Errorf("getting items archive group: %w", err)
 	}
 
-	definitions := make(ItemDefinitions, len(group.Files))
+	definitions := make(map[uint16]*ItemDefinition, len(group.Files))
 	for _, file := range group.Files {
 		def, err := NewItemDefinition(uint16(file.ID), file.Data)
 		if err != nil {
@@ -118,7 +118,7 @@ func (c *Cache) ExportItemDefinitions(outputDir string, mode JSONExportMode, fil
 	return NewJSONExporter(items, outputDir).ExportToJSON(mode, filename)
 }
 
-func (c *Cache) NPCDefinitions() (NPCDefinitions, error) {
+func (c *Cache) NPCDefinitions() (map[uint16]*NPCDefinition, error) {
 	entryCount, err := c.EntityCount(2, 9)
 	if err != nil {
 		return nil, fmt.Errorf("getting npc entity count: %w", err)
@@ -129,7 +129,7 @@ func (c *Cache) NPCDefinitions() (NPCDefinitions, error) {
 		return nil, fmt.Errorf("getting npcs archive group: %w", err)
 	}
 
-	definitions := make(NPCDefinitions, len(group.Files))
+	definitions := make(map[uint16]*NPCDefinition, len(group.Files))
 	for _, file := range group.Files {
 		def, err := NewNPCDefinition(uint16(file.ID), file.Data)
 		if err != nil {
@@ -148,7 +148,7 @@ func (c *Cache) ExportNPCDefinitions(outputDir string, mode JSONExportMode, file
 	return NewJSONExporter(npcs, outputDir).ExportToJSON(mode, filename)
 }
 
-func (c *Cache) ObjectDefinitions() (ObjectDefinitions, error) {
+func (c *Cache) ObjectDefinitions() (map[uint16]*ObjectDefinition, error) {
 	entryCount, err := c.EntityCount(2, 6)
 	if err != nil {
 		return nil, fmt.Errorf("getting object entity count: %w", err)
@@ -159,7 +159,7 @@ func (c *Cache) ObjectDefinitions() (ObjectDefinitions, error) {
 		return nil, fmt.Errorf("getting objects archive group: %w", err)
 	}
 
-	definitions := make(ObjectDefinitions, len(group.Files))
+	definitions := make(map[uint16]*ObjectDefinition, len(group.Files))
 	for _, file := range group.Files {
 		def, err := NewObjectDefinition(uint16(file.ID), file.Data)
 		if err != nil {
@@ -178,13 +178,13 @@ func (c *Cache) ExportObjectDefinitions(outputDir string, mode JSONExportMode, f
 	return NewJSONExporter(npcs, outputDir).ExportToJSON(mode, filename)
 }
 
-func (c *Cache) Sprites() (Sprites, error) {
+func (c *Cache) Sprites() (map[uint32]*Sprite, error) {
 	index, err := c.Indices.Get(8)
 	if err != nil {
 		return nil, fmt.Errorf("getting index: %w", err)
 	}
 
-	sprites := make(Sprites, len(index.ArchiveIDs()))
+	sprites := make(map[uint32]*Sprite, len(index.ArchiveIDs()))
 	for _, id := range index.ArchiveIDs() {
 		archiveData, err := c.ArchiveData(8, id)
 		if err != nil {

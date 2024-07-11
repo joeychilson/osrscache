@@ -9,16 +9,6 @@ import (
 	"math"
 )
 
-type NPCDefinitions map[uint16]*NPCDefinition
-
-func (d NPCDefinitions) Get(id uint16) (*NPCDefinition, error) {
-	def, ok := d[id]
-	if !ok {
-		return nil, fmt.Errorf("npc definition not found")
-	}
-	return def, nil
-}
-
 type NPCDefinition struct {
 	ID               uint16           `json:"id"`
 	Category         uint16           `json:"category"`
