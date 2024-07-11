@@ -16,44 +16,52 @@ const (
 )
 
 func DecompressArchiveData(data []byte) ([]byte, error) {
-	if len(data) < 5 {
-		return nil, fmt.Errorf("archive data too short: %d bytes", len(data))
+	reader := bytes.NewReader(data)
+
+	compressionType, err := reader.ReadByte()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read compression type: %w", err)
 	}
 
-	compressionType := data[0]
-	compressedLength := int(binary.BigEndian.Uint32(data[1:5]))
+	var compressedLength uint32
+	if err := binary.Read(reader, binary.BigEndian, &compressedLength); err != nil {
+		return nil, fmt.Errorf("failed to read compressed length: %w", err)
+	}
 
 	if compressionType == CompressionNone {
-		return data[5:], nil
+		uncompressedData := make([]byte, compressedLength)
+		_, err := io.ReadFull(reader, uncompressedData)
+		return uncompressedData, err
 	}
 
-	if len(data) < compressedLength+9 {
-		return nil, fmt.Errorf("archive data shorter than expected: %d < %d", len(data), compressedLength+9)
+	var uncompressedLength uint32
+	if err := binary.Read(reader, binary.BigEndian, &uncompressedLength); err != nil {
+		return nil, fmt.Errorf("failed to read uncompressed length: %w", err)
 	}
 
-	uncompressedLength := int(binary.BigEndian.Uint32(data[5:9]))
-	compressedData := data[9 : compressedLength+9]
+	if uint32(reader.Len()) < compressedLength {
+		return nil, fmt.Errorf("archive data shorter than expected: %d < %d", reader.Len(), compressedLength)
+	}
 
-	var reader io.Reader
+	var decompressor io.Reader
 
 	switch compressionType {
 	case CompressionGZIP:
-		gzipReader, err := gzip.NewReader(bytes.NewReader(compressedData))
+		gzipReader, err := gzip.NewReader(reader)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create gzip reader: %w", err)
 		}
 		defer gzipReader.Close()
-		reader = gzipReader
+		decompressor = gzipReader
 	case CompressionBZIP2:
 		bzip2Header := []byte{'B', 'Z', 'h', '1'}
-		customCompressedData := append(bzip2Header, compressedData...)
-		reader = bzip2.NewReader(bytes.NewReader(customCompressedData))
+		decompressor = bzip2.NewReader(io.MultiReader(bytes.NewReader(bzip2Header), reader))
 	default:
 		return nil, fmt.Errorf("unknown compression type: %d", compressionType)
 	}
 
 	uncompressedData := make([]byte, uncompressedLength)
-	n, err := io.ReadFull(reader, uncompressedData)
+	n, err := io.ReadFull(decompressor, uncompressedData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decompress data (read %d bytes): %w", n, err)
 	}
