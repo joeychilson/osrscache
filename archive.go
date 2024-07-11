@@ -93,9 +93,8 @@ type ArchiveFile struct {
 }
 
 func NewArchiveGroup(data []byte, entryCount int) (*ArchiveGroup, error) {
-	type CachedChunk struct {
-		entryID   uint32
-		chunkSize int
+	if entryCount == 1 {
+		return &ArchiveGroup{Files: []*ArchiveFile{{ID: 0, Data: data}}}, nil
 	}
 
 	reader := bytes.NewReader(data)
@@ -117,7 +116,12 @@ func NewArchiveGroup(data []byte, entryCount int) (*ArchiveGroup, error) {
 		return nil, fmt.Errorf("failed to seek to chunk size data: %w", err)
 	}
 
-	cachedChunks := make([]CachedChunk, 0, chunkCount)
+	type cachedChunk struct {
+		entryID   uint32
+		chunkSize int
+	}
+
+	cachedChunks := make([]cachedChunk, 0, chunkCount)
 
 	for i := 0; i < int(chunkCount); i++ {
 		totalChunkSize := 0
@@ -130,7 +134,7 @@ func NewArchiveGroup(data []byte, entryCount int) (*ArchiveGroup, error) {
 			totalChunkSize += int(delta)
 			readPtr += 4
 
-			cachedChunks = append(cachedChunks, CachedChunk{
+			cachedChunks = append(cachedChunks, cachedChunk{
 				entryID:   uint32(entryID),
 				chunkSize: totalChunkSize,
 			})
