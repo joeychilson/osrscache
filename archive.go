@@ -95,8 +95,8 @@ func NewArchiveGroup(buffer []byte, entryCount int) (*ArchiveGroup, error) {
 		return nil, fmt.Errorf("buffer is too short")
 	}
 
-	numChunks := int(buffer[len(buffer)-1])
-	minBufferSize := 1 + numChunks*entryCount*4
+	chunkCount := int(buffer[len(buffer)-1])
+	minBufferSize := 1 + chunkCount*entryCount*4
 	if len(buffer) < minBufferSize {
 		return nil, fmt.Errorf("buffer is too short: expected at least %d bytes, got %d", minBufferSize, len(buffer))
 	}
@@ -106,12 +106,12 @@ func NewArchiveGroup(buffer []byte, entryCount int) (*ArchiveGroup, error) {
 		chunkSize int
 	}
 
-	chunkInfo := make([]CachedChunk, 0, numChunks*entryCount)
-	data := make([]*ArchiveFile, 0, numChunks*entryCount)
+	chunkInfo := make([]CachedChunk, 0, chunkCount)
+	data := make([]*ArchiveFile, 0, chunkCount)
 
-	readPtr := len(buffer) - 1 - numChunks*entryCount*4
+	readPtr := len(buffer) - 1 - chunkCount*entryCount*4
 
-	for i := 0; i < numChunks; i++ {
+	for i := 0; i < chunkCount; i++ {
 		totalChunkSize := 0
 		for entryID := 0; entryID < entryCount; entryID++ {
 			if readPtr+4 > len(buffer) {

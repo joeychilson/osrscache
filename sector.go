@@ -1,6 +1,7 @@
 package osrscache
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 )
@@ -26,25 +27,42 @@ type Sector struct {
 }
 
 func NewSector(data []byte, headerSize uint32) (*Sector, error) {
-	if len(data) < int(headerSize) {
-		return nil, fmt.Errorf("invalid sector data: got %d bytes, want at least %d", len(data), headerSize)
-	}
-
+	reader := bytes.NewReader(data)
 	header := SectorHeader{}
+
 	if headerSize == SectorExpandedHeaderSize {
-		header.ArchiveID = ArchiveID(binary.BigEndian.Uint32(data))
-		data = data[4:]
+		if err := binary.Read(reader, binary.BigEndian, &header.ArchiveID); err != nil {
+			return nil, fmt.Errorf("failed to read ArchiveID: %w", err)
+		}
 	} else {
-		header.ArchiveID = ArchiveID(binary.BigEndian.Uint16(data))
-		data = data[2:]
+		var shortArchiveID uint16
+		if err := binary.Read(reader, binary.BigEndian, &shortArchiveID); err != nil {
+			return nil, fmt.Errorf("failed to read short ArchiveID: %w", err)
+		}
+		header.ArchiveID = ArchiveID(shortArchiveID)
 	}
 
-	header.Chunk = binary.BigEndian.Uint16(data)
-	header.Next = uint32(binary.BigEndian.Uint16(data[2:])) << 8
-	header.Next |= uint32(data[4])
-	header.IndexID = IndexID(data[5])
+	if err := binary.Read(reader, binary.BigEndian, &header.Chunk); err != nil {
+		return nil, fmt.Errorf("failed to read Chunk: %w", err)
+	}
 
-	return &Sector{Header: header, DataBlock: data[6:]}, nil
+	var nextUpper uint16
+	if err := binary.Read(reader, binary.BigEndian, &nextUpper); err != nil {
+		return nil, fmt.Errorf("failed to read Next upper bits: %w", err)
+	}
+
+	var nextLower uint8
+	if err := binary.Read(reader, binary.BigEndian, &nextLower); err != nil {
+		return nil, fmt.Errorf("failed to read Next lower bits: %w", err)
+	}
+
+	header.Next = uint32(nextUpper)<<8 | uint32(nextLower)
+
+	if err := binary.Read(reader, binary.BigEndian, &header.IndexID); err != nil {
+		return nil, fmt.Errorf("failed to read IndexID: %w", err)
+	}
+
+	return &Sector{Header: header, DataBlock: data[headerSize:]}, nil
 }
 
 func (h *SectorHeader) Validate(indexID IndexID, archiveID ArchiveID, chunk uint32) error {

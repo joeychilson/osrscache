@@ -142,10 +142,6 @@ type IndexMetadata struct {
 }
 
 func NewIndexMetadata(data []byte) (*IndexMetadata, error) {
-	if len(data) == 0 {
-		return nil, fmt.Errorf("empty metadata buffer")
-	}
-
 	reader := bytes.NewReader(data)
 
 	var protocol uint8
