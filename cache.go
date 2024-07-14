@@ -2,6 +2,7 @@ package osrscache
 
 import (
 	"fmt"
+	"log"
 	"path/filepath"
 )
 
@@ -211,6 +212,28 @@ func (c *Cache) ExportSprites(outputDir string) error {
 		return fmt.Errorf("getting sprites: %w", err)
 	}
 	return NewImageExporter(sprites, outputDir).ExportToImage("sprite")
+}
+
+func (c *Cache) EnumTypes() (map[uint16]*EnumType, error) {
+	entryCount, err := c.EntityCount(2, 8)
+	if err != nil {
+		log.Fatalf("getting item entity count: %v", err)
+	}
+
+	group, err := c.ArchiveGroup(2, 8, entryCount)
+	if err != nil {
+		log.Fatalf("getting items archive group: %v", err)
+	}
+
+	enums := make(map[uint16]*EnumType, len(group.Files))
+	for _, file := range group.Files {
+		enum, err := NewEnumType(uint16(file.ID), file.Data)
+		if err != nil {
+			return nil, fmt.Errorf("creating enum type: %w", err)
+		}
+		enums[uint16(file.ID)] = enum
+	}
+	return enums, nil
 }
 
 func (c *Cache) Close() error {

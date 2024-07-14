@@ -97,7 +97,8 @@ func NewArchiveGroup(data []byte, entryCount int) (*ArchiveGroup, error) {
 		return &ArchiveGroup{Files: []*ArchiveFile{{ID: 0, Data: data}}}, nil
 	}
 
-	reader := bytes.NewReader(data)
+	dataSize := int64(len(data))
+	reader := io.NewSectionReader(bytes.NewReader(data), 0, dataSize)
 
 	_, err := reader.Seek(-1, io.SeekEnd)
 	if err != nil {
@@ -105,60 +106,45 @@ func NewArchiveGroup(data []byte, entryCount int) (*ArchiveGroup, error) {
 	}
 
 	var chunkCount uint8
-	if err := binary.Read(reader, binary.BigEndian, &chunkCount); err != nil {
+	err = binary.Read(reader, binary.BigEndian, &chunkCount)
+	if err != nil {
 		return nil, fmt.Errorf("failed to read chunk count: %w", err)
 	}
 
-	readPtr := reader.Size() - 1 - int64(chunkCount)*int64(entryCount)*4
-
-	_, err = reader.Seek(readPtr, io.SeekStart)
+	chunkInfoSize := int64(chunkCount) * int64(entryCount) * 4
+	chunkInfoStart := dataSize - 1 - chunkInfoSize
+	_, err = reader.Seek(chunkInfoStart, io.SeekStart)
 	if err != nil {
 		return nil, fmt.Errorf("failed to seek to chunk size data: %w", err)
 	}
 
-	type cachedChunk struct {
-		entryID   uint32
-		chunkSize int
-	}
-
-	cachedChunks := make([]cachedChunk, 0, chunkCount)
-
-	for i := 0; i < int(chunkCount); i++ {
-		totalChunkSize := 0
-		for entryID := 0; entryID < entryCount; entryID++ {
-			var delta int32
-			if err := binary.Read(reader, binary.BigEndian, &delta); err != nil {
-				return nil, fmt.Errorf("failed to read chunk delta: %w", err)
-			}
-
-			totalChunkSize += int(delta)
-			readPtr += 4
-
-			cachedChunks = append(cachedChunks, cachedChunk{
-				entryID:   uint32(entryID),
-				chunkSize: totalChunkSize,
-			})
-		}
-	}
-
-	_, err = reader.Seek(0, io.SeekStart)
+	chunkInfo := make([]int32, chunkInfoSize/4)
+	err = binary.Read(reader, binary.BigEndian, chunkInfo)
 	if err != nil {
-		return nil, fmt.Errorf("failed to seek to start: %w", err)
+		return nil, fmt.Errorf("failed to read chunk info: %w", err)
 	}
 
-	files := make([]*ArchiveFile, 0, chunkCount)
+	files := make([]*ArchiveFile, 0, int(chunkCount))
+	var offset int64
 
-	for _, chunk := range cachedChunks {
-		buf := make([]byte, chunk.chunkSize)
-		_, err := io.ReadFull(reader, buf)
+	for i := 0; i < len(chunkInfo); i += entryCount {
+		totalChunkSize := int64(0)
+		for j := 0; j < entryCount; j++ {
+			totalChunkSize += int64(chunkInfo[i+j])
+		}
+
+		buf := make([]byte, totalChunkSize)
+		_, err := reader.ReadAt(buf, offset)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read chunk data: %w", err)
 		}
 
 		files = append(files, &ArchiveFile{
-			ID:   ArchiveID(chunk.entryID),
+			ID:   ArchiveID(i / entryCount),
 			Data: buf,
 		})
+
+		offset += totalChunkSize
 	}
 
 	return &ArchiveGroup{Files: files}, nil
