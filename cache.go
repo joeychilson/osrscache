@@ -217,6 +217,50 @@ func (c *Cache) ExportSprites(outputDir string) error {
 	return NewImageExporter(sprites, outputDir).ExportToImage("sprite")
 }
 
+func (c *Cache) Enums() (map[uint16]*Enum, error) {
+	entryCount, err := c.EntityCount(2, 8)
+	if err != nil {
+		return nil, fmt.Errorf("getting enum entity count: %w", err)
+	}
+
+	group, err := c.ArchiveGroup(2, 8, entryCount)
+	if err != nil {
+		return nil, fmt.Errorf("getting enums archive group: %w", err)
+	}
+
+	enums := make(map[uint16]*Enum, len(group.Files))
+	for _, file := range group.Files {
+		enum, err := NewEnum(uint16(file.ID), file.Data)
+		if err != nil {
+			return nil, fmt.Errorf("creating enum type: %w", err)
+		}
+		enums[uint16(file.ID)] = enum
+	}
+	return enums, nil
+}
+
+func (c *Cache) Structs() (map[uint16]*Struct, error) {
+	entryCount, err := c.EntityCount(2, 34)
+	if err != nil {
+		return nil, fmt.Errorf("getting struct type entity count: %w", err)
+	}
+
+	group, err := c.ArchiveGroup(2, 34, entryCount)
+	if err != nil {
+		return nil, fmt.Errorf("getting struct types archive group: %w", err)
+	}
+
+	types := make(map[uint16]*Struct, len(group.Files))
+	for _, file := range group.Files {
+		def, err := NewStruct(uint16(file.ID), file.Data)
+		if err != nil {
+			return nil, fmt.Errorf("creating struct type: %w", err)
+		}
+		types[uint16(file.ID)] = def
+	}
+	return types, nil
+}
+
 func (c *Cache) Close() error {
 	return c.Data.Close()
 }

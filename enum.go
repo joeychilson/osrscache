@@ -8,17 +8,19 @@ import (
 	"io"
 )
 
-type Enum[K int | int32, V string | int | int32] struct {
+type Enum struct {
 	ID           uint16
 	KeyType      byte
 	ValueType    byte
-	DefaultValue V
-	Values       map[K]V
+	DefaultValue any
+	Values       map[int32]any
 }
 
-func NewEnum[K int | int32, V string | int | int32](id uint16, data []byte) (*Enum[K, V], error) {
-	e := &Enum[K, V]{
-		ID: id,
+func NewEnum(id uint16, data []byte) (*Enum, error) {
+	e := &Enum{
+		ID:           id,
+		DefaultValue: nil,
+		Values:       make(map[int32]any),
 	}
 	if err := e.Read(data); err != nil {
 		return nil, err
@@ -26,7 +28,7 @@ func NewEnum[K int | int32, V string | int | int32](id uint16, data []byte) (*En
 	return e, nil
 }
 
-func (e *Enum[K, V]) Read(data []byte) error {
+func (e *Enum) Read(data []byte) error {
 	reader := bytes.NewReader(data)
 	for {
 		var opcode uint8
@@ -39,53 +41,50 @@ func (e *Enum[K, V]) Read(data []byte) error {
 		if opcode == 0 {
 			break
 		}
-
 		switch opcode {
 		case 1:
 			if err := binary.Read(reader, binary.BigEndian, &e.KeyType); err != nil {
-				return fmt.Errorf("reading key type: %w", err)
+				return err
 			}
 		case 2:
 			if err := binary.Read(reader, binary.BigEndian, &e.ValueType); err != nil {
-				return fmt.Errorf("reading value type: %w", err)
+				return err
 			}
 		case 3:
-			s, err := ReadString(reader)
+			defaultStr, err := ReadString(reader)
 			if err != nil {
-				return fmt.Errorf("reading default string value: %w", err)
+				return err
 			}
-			e.DefaultValue = any(s).(V)
+			e.DefaultValue = defaultStr
 		case 4:
 			var defaultInt int32
 			if err := binary.Read(reader, binary.BigEndian, &defaultInt); err != nil {
-				return fmt.Errorf("reading default int value: %w", err)
+				return err
 			}
-			e.DefaultValue = any(defaultInt).(V)
+			e.DefaultValue = defaultInt
 		case 5, 6:
 			var size uint16
 			if err := binary.Read(reader, binary.BigEndian, &size); err != nil {
-				return fmt.Errorf("reading size: %w", err)
+				return err
 			}
 			for i := uint16(0); i < size; i++ {
-				var key K
+				var key int32
 				if err := binary.Read(reader, binary.BigEndian, &key); err != nil {
-					return fmt.Errorf("reading key: %w", err)
+					return err
 				}
-				var value V
 				if opcode == 5 {
-					s, err := ReadString(reader)
+					strValue, err := ReadString(reader)
 					if err != nil {
-						return fmt.Errorf("reading string value: %w", err)
+						return err
 					}
-					value = any(s).(V)
+					e.Values[key] = strValue
 				} else {
 					var intValue int32
 					if err := binary.Read(reader, binary.BigEndian, &intValue); err != nil {
-						return fmt.Errorf("reading int value: %w", err)
+						return err
 					}
-					value = any(intValue).(V)
+					e.Values[key] = intValue
 				}
-				e.Values[key] = value
 			}
 		default:
 			return fmt.Errorf("unsupported opcode: %d", opcode)
