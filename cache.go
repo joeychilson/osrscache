@@ -2,7 +2,6 @@ package osrscache
 
 import (
 	"fmt"
-	"log"
 	"path/filepath"
 )
 
@@ -216,50 +215,6 @@ func (c *Cache) ExportSprites(outputDir string) error {
 		return fmt.Errorf("getting sprites: %w", err)
 	}
 	return NewImageExporter(sprites, outputDir).ExportToImage("sprite")
-}
-
-func (c *Cache) EnumTypes() (map[uint16]*EnumType, error) {
-	entryCount, err := c.EntityCount(2, 8)
-	if err != nil {
-		log.Fatalf("getting item entity count: %v", err)
-	}
-
-	group, err := c.ArchiveGroup(2, 8, entryCount)
-	if err != nil {
-		log.Fatalf("getting items archive group: %v", err)
-	}
-
-	enums := make(map[uint16]*EnumType, len(group.Files))
-	for _, file := range group.Files {
-		enum, err := NewEnumType(uint16(file.ID), file.Data)
-		if err != nil {
-			return nil, fmt.Errorf("creating enum type: %w", err)
-		}
-		enums[uint16(file.ID)] = enum
-	}
-	return enums, nil
-}
-
-func (c *Cache) StructTypes() (map[uint16]*StructType, error) {
-	entryCount, err := c.EntityCount(2, 34)
-	if err != nil {
-		return nil, fmt.Errorf("getting struct type entity count: %w", err)
-	}
-
-	group, err := c.ArchiveGroup(2, 34, entryCount)
-	if err != nil {
-		return nil, fmt.Errorf("getting struct types archive group: %w", err)
-	}
-
-	types := make(map[uint16]*StructType, len(group.Files))
-	for _, file := range group.Files {
-		def, err := NewStructType(uint16(file.ID), file.Data)
-		if err != nil {
-			return nil, fmt.Errorf("creating struct type: %w", err)
-		}
-		types[uint16(file.ID)] = def
-	}
-	return types, nil
 }
 
 func (c *Cache) Close() error {

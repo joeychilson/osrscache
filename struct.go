@@ -8,13 +8,13 @@ import (
 	"io"
 )
 
-type StructType struct {
+type Struct struct {
 	ID     uint16
 	Params map[uint32]any
 }
 
-func NewStructType(id uint16, data []byte) (*StructType, error) {
-	s := &StructType{
+func NewStruct(id uint16, data []byte) (*Struct, error) {
+	s := &Struct{
 		ID:     id,
 		Params: make(map[uint32]any),
 	}
@@ -24,7 +24,7 @@ func NewStructType(id uint16, data []byte) (*StructType, error) {
 	return s, nil
 }
 
-func (s *StructType) Read(data []byte) error {
+func (s *Struct) Read(data []byte) error {
 	reader := bytes.NewReader(data)
 	for {
 		var opcode uint8
