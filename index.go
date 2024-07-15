@@ -257,3 +257,12 @@ func NewIndexMetadata(data []byte) (*IndexMetadata, error) {
 	}
 	return im, nil
 }
+
+func (im *IndexMetadata) ArchiveByID(id ArchiveID) (*ArchiveMetadata, error) {
+	for i := range im.Archives {
+		if im.Archives[i].ID == id {
+			return &im.Archives[i], nil
+		}
+	}
+	return nil, fmt.Errorf("archive not found: %d", id)
+}

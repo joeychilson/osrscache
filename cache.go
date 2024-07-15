@@ -86,7 +86,11 @@ func (c *Cache) EntityCount(indexID IndexID, archiveID ArchiveID) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("reading reference table: %w", err)
 	}
-	return meta.Archives[archiveID-1].EntryCount, nil
+	archive, err := meta.ArchiveByID(archiveID)
+	if err != nil {
+		return 0, fmt.Errorf("getting archive: %w", err)
+	}
+	return archive.EntryCount, nil
 }
 
 func (c *Cache) ItemDefinitions() (map[uint16]*ItemDefinition, error) {
