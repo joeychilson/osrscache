@@ -240,6 +240,28 @@ func (c *Cache) EnumTypes() (map[uint16]*EnumType, error) {
 	return enums, nil
 }
 
+func (c *Cache) StructTypes() (map[uint16]*StructType, error) {
+	entryCount, err := c.EntityCount(2, 34)
+	if err != nil {
+		return nil, fmt.Errorf("getting struct type entity count: %w", err)
+	}
+
+	group, err := c.ArchiveGroup(2, 34, entryCount)
+	if err != nil {
+		return nil, fmt.Errorf("getting struct types archive group: %w", err)
+	}
+
+	types := make(map[uint16]*StructType, len(group.Files))
+	for _, file := range group.Files {
+		def, err := NewStructType(uint16(file.ID), file.Data)
+		if err != nil {
+			return nil, fmt.Errorf("creating struct type: %w", err)
+		}
+		types[uint16(file.ID)] = def
+	}
+	return types, nil
+}
+
 func (c *Cache) Close() error {
 	return c.Data.Close()
 }
