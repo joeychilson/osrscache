@@ -2,6 +2,7 @@ package osrscache
 
 import (
 	"fmt"
+	"log"
 	"path/filepath"
 )
 
@@ -114,12 +115,12 @@ func (c *Cache) ItemDefinitions() (map[uint16]*ItemDefinition, error) {
 	return definitions, nil
 }
 
-func (c *Cache) ExportItemDefinitions(outputDir string, mode JSONExportMode, filename string) error {
+func (c *Cache) ExportItemDefinitions(outputDir string, mode JSONExportMode) error {
 	items, err := c.ItemDefinitions()
 	if err != nil {
 		return fmt.Errorf("getting item definitions: %w", err)
 	}
-	return NewJSONExporter(items, outputDir).ExportToJSON(mode, filename)
+	return NewJSONExporter(items, outputDir).ExportToJSON(mode, "item")
 }
 
 func (c *Cache) NPCDefinitions() (map[uint16]*NPCDefinition, error) {
@@ -139,12 +140,12 @@ func (c *Cache) NPCDefinitions() (map[uint16]*NPCDefinition, error) {
 	return definitions, nil
 }
 
-func (c *Cache) ExportNPCDefinitions(outputDir string, mode JSONExportMode, filename string) error {
+func (c *Cache) ExportNPCDefinitions(outputDir string, mode JSONExportMode) error {
 	npcs, err := c.NPCDefinitions()
 	if err != nil {
 		return fmt.Errorf("getting npc definitions: %w", err)
 	}
-	return NewJSONExporter(npcs, outputDir).ExportToJSON(mode, filename)
+	return NewJSONExporter(npcs, outputDir).ExportToJSON(mode, "npc")
 }
 
 func (c *Cache) ObjectDefinitions() (map[uint16]*ObjectDefinition, error) {
@@ -164,12 +165,12 @@ func (c *Cache) ObjectDefinitions() (map[uint16]*ObjectDefinition, error) {
 	return definitions, nil
 }
 
-func (c *Cache) ExportObjectDefinitions(outputDir string, mode JSONExportMode, filename string) error {
+func (c *Cache) ExportObjectDefinitions(outputDir string, mode JSONExportMode) error {
 	npcs, err := c.ObjectDefinitions()
 	if err != nil {
 		return fmt.Errorf("getting object definitions: %w", err)
 	}
-	return NewJSONExporter(npcs, outputDir).ExportToJSON(mode, filename)
+	return NewJSONExporter(npcs, outputDir).ExportToJSON(mode, "object")
 }
 
 func (c *Cache) Sprites() (map[uint32]*Sprite, error) {
@@ -224,6 +225,14 @@ func (c *Cache) Enums() (map[uint16]*Enum, error) {
 	return enums, nil
 }
 
+func (c *Cache) ExportEnums(outputDir string, mode JSONExportMode) error {
+	enums, err := c.Enums()
+	if err != nil {
+		return fmt.Errorf("getting enums: %w", err)
+	}
+	return NewJSONExporter(enums, outputDir).ExportToJSON(mode, "enum")
+}
+
 func (c *Cache) Structs() (map[uint16]*Struct, error) {
 	group, err := c.ArchiveGroup(2, 34)
 	if err != nil {
@@ -239,6 +248,123 @@ func (c *Cache) Structs() (map[uint16]*Struct, error) {
 		structs[uint16(file.ID)] = def
 	}
 	return structs, nil
+}
+
+func (c *Cache) ExportStructs(outputDir string, mode JSONExportMode) error {
+	structs, err := c.Structs()
+	if err != nil {
+		return fmt.Errorf("getting structs: %w", err)
+	}
+	return NewJSONExporter(structs, outputDir).ExportToJSON(mode, "struct")
+}
+
+func (c *Cache) CombatAchievements() (map[uint32]*CombatAchievement, error) {
+	enums, err := c.Enums()
+	if err != nil {
+		return nil, fmt.Errorf("getting enums: %w", err)
+	}
+
+	structs, err := c.Structs()
+	if err != nil {
+		return nil, fmt.Errorf("getting structs: %w", err)
+	}
+
+	tierEnum, ok := enums[TierEnumID]
+	if !ok {
+		return nil, fmt.Errorf("tier enum not found")
+	}
+
+	typeEnum, ok := enums[TypeEnumID]
+	if !ok {
+		return nil, fmt.Errorf("type enum not found")
+	}
+
+	monsterEnum, ok := enums[MonsterEnumID]
+	if !ok {
+		return nil, fmt.Errorf("monster enum not found")
+	}
+
+	var (
+		combatAchievementTaskIDs = []uint16{3981, 3982, 3983, 3984, 3985, 3986}
+		combatAchievements       = make(map[uint32]*CombatAchievement)
+	)
+	for _, taskID := range combatAchievementTaskIDs {
+		taskEnum, ok := enums[taskID]
+		if !ok {
+			return nil, fmt.Errorf("task enum not found")
+		}
+		for _, taskID := range taskEnum.Values {
+			taskStruct, ok := structs[uint16(taskID.(int32))]
+			if !ok {
+				log.Printf("task struct not found: %d", taskID)
+				continue
+			}
+
+			id, ok := taskStruct.Params[CAIDParamID].(uint32)
+			if !ok {
+				return nil, fmt.Errorf("invalid or missing ID")
+			}
+
+			title, ok := taskStruct.Params[TitleParamID].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid or missing title")
+			}
+
+			description, ok := taskStruct.Params[DescriptionParamID].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid or missing description")
+			}
+
+			monsterKey, ok := taskStruct.Params[MonsterParamID].(uint32)
+			if !ok {
+				return nil, fmt.Errorf("invalid or missing monster key")
+			}
+
+			tierKey, ok := taskStruct.Params[TierParamID].(uint32)
+			if !ok {
+				return nil, fmt.Errorf("invalid or missing tier key")
+			}
+
+			typeKey, ok := taskStruct.Params[TypeParamID].(uint32)
+			if !ok {
+				return nil, fmt.Errorf("invalid or missing type key")
+			}
+
+			monster, ok := monsterEnum.Values[int32(monsterKey)].(string)
+			if !ok {
+				log.Printf("invalid monster mapping: %d", monsterKey)
+				continue
+			}
+
+			tier, ok := tierEnum.Values[int32(tierKey)].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid tier mapping")
+			}
+
+			achievementType, ok := typeEnum.Values[int32(typeKey)].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid type mapping")
+			}
+
+			combatAchievements[id] = &CombatAchievement{
+				ID:          id,
+				Title:       title,
+				Description: description,
+				Tier:        CombatAchievementTier(tier),
+				Type:        CombatAchievementType(achievementType),
+				Monster:     monster,
+			}
+		}
+	}
+	return combatAchievements, nil
+}
+
+func (c *Cache) ExportCombatAchievements(outputDir string, mode JSONExportMode) error {
+	achievements, err := c.CombatAchievements()
+	if err != nil {
+		return fmt.Errorf("getting item definitions: %w", err)
+	}
+	return NewJSONExporter(achievements, outputDir).ExportToJSON(mode, "combat_achievement")
 }
 
 func (c *Cache) Close() error {
