@@ -84,7 +84,7 @@ type ArchiveMetadata struct {
 }
 
 type ArchiveGroup struct {
-	Files []*ArchiveFile
+	Files map[ArchiveID]*ArchiveFile
 }
 
 type ArchiveFile struct {
@@ -92,9 +92,11 @@ type ArchiveFile struct {
 	Data []byte
 }
 
-func NewArchiveGroup(data []byte, entryCount int) (*ArchiveGroup, error) {
-	if entryCount == 1 {
-		return &ArchiveGroup{Files: []*ArchiveFile{{ID: 0, Data: data}}}, nil
+func NewArchiveGroup(metadata *ArchiveMetadata, data []byte) (*ArchiveGroup, error) {
+	if metadata.EntryCount == 1 {
+		return &ArchiveGroup{
+			Files: map[ArchiveID]*ArchiveFile{metadata.ID: {ID: metadata.ID, Data: data}},
+		}, nil
 	}
 
 	reader := bytes.NewReader(data)
@@ -109,7 +111,7 @@ func NewArchiveGroup(data []byte, entryCount int) (*ArchiveGroup, error) {
 		return nil, fmt.Errorf("failed to read chunk count: %w", err)
 	}
 
-	readPtr := reader.Size() - 1 - int64(chunkCount)*int64(entryCount)*4
+	readPtr := reader.Size() - 1 - int64(chunkCount)*int64(metadata.EntryCount)*4
 
 	_, err = reader.Seek(readPtr, io.SeekStart)
 	if err != nil {
@@ -117,15 +119,15 @@ func NewArchiveGroup(data []byte, entryCount int) (*ArchiveGroup, error) {
 	}
 
 	type cachedChunk struct {
-		entryID   uint32
+		entryID   ArchiveID
 		chunkSize int
 	}
 
-	cachedChunks := make([]cachedChunk, 0, chunkCount)
+	cachedChunks := make([]cachedChunk, 0, int(chunkCount)*metadata.EntryCount)
 
 	for i := 0; i < int(chunkCount); i++ {
 		totalChunkSize := 0
-		for entryID := 0; entryID < entryCount; entryID++ {
+		for j := 0; j < metadata.EntryCount; j++ {
 			var delta int32
 			if err := binary.Read(reader, binary.BigEndian, &delta); err != nil {
 				return nil, fmt.Errorf("failed to read chunk delta: %w", err)
@@ -135,7 +137,7 @@ func NewArchiveGroup(data []byte, entryCount int) (*ArchiveGroup, error) {
 			readPtr += 4
 
 			cachedChunks = append(cachedChunks, cachedChunk{
-				entryID:   uint32(entryID),
+				entryID:   ArchiveID(metadata.ValidIDs[j]),
 				chunkSize: totalChunkSize,
 			})
 		}
@@ -146,7 +148,7 @@ func NewArchiveGroup(data []byte, entryCount int) (*ArchiveGroup, error) {
 		return nil, fmt.Errorf("failed to seek to start: %w", err)
 	}
 
-	files := make([]*ArchiveFile, 0, chunkCount)
+	files := make(map[ArchiveID]*ArchiveFile, metadata.EntryCount)
 
 	for _, chunk := range cachedChunks {
 		buf := make([]byte, chunk.chunkSize)
@@ -155,10 +157,14 @@ func NewArchiveGroup(data []byte, entryCount int) (*ArchiveGroup, error) {
 			return nil, fmt.Errorf("failed to read chunk data: %w", err)
 		}
 
-		files = append(files, &ArchiveFile{
-			ID:   ArchiveID(chunk.entryID),
-			Data: buf,
-		})
+		if existingFile, ok := files[chunk.entryID]; ok {
+			existingFile.Data = append(existingFile.Data, buf...)
+		} else {
+			files[chunk.entryID] = &ArchiveFile{
+				ID:   chunk.entryID,
+				Data: buf,
+			}
+		}
 	}
 
 	return &ArchiveGroup{Files: files}, nil

@@ -26,6 +26,18 @@ func NewCache(path string) (*Cache, error) {
 	return &Cache{Data: data, Indices: indices}, nil
 }
 
+func (c *Cache) ArchiveMetadata(indexID IndexID, archiveID ArchiveID) (*ArchiveMetadata, error) {
+	meta, err := c.ReferenceTable(indexID)
+	if err != nil {
+		return nil, fmt.Errorf("reading reference table: %w", err)
+	}
+	archive, err := meta.ArchiveByID(archiveID)
+	if err != nil {
+		return nil, fmt.Errorf("getting archive: %w", err)
+	}
+	return archive, nil
+}
+
 func (c *Cache) ArchiveData(indexID IndexID, archiveID ArchiveID) ([]byte, error) {
 	index, err := c.Indices.Get(indexID)
 	if err != nil {
@@ -44,7 +56,7 @@ func (c *Cache) ArchiveData(indexID IndexID, archiveID ArchiveID) ([]byte, error
 	return data, nil
 }
 
-func (c *Cache) ArchiveGroup(indexID IndexID, archiveID ArchiveID, entryCount int) (*ArchiveGroup, error) {
+func (c *Cache) ArchiveGroup(indexID IndexID, archiveID ArchiveID) (*ArchiveGroup, error) {
 	data, err := c.ArchiveData(indexID, archiveID)
 	if err != nil {
 		return nil, fmt.Errorf("reading archive: %w", err)
@@ -55,7 +67,12 @@ func (c *Cache) ArchiveGroup(indexID IndexID, archiveID ArchiveID, entryCount in
 		return nil, fmt.Errorf("decompressing archive: %w", err)
 	}
 
-	group, err := NewArchiveGroup(archiveData, entryCount)
+	archiveMetadata, err := c.ArchiveMetadata(indexID, archiveID)
+	if err != nil {
+		return nil, fmt.Errorf("getting archive metadata: %w", err)
+	}
+
+	group, err := NewArchiveGroup(archiveMetadata, archiveData)
 	if err != nil {
 		return nil, fmt.Errorf("creating archive group: %w", err)
 	}
@@ -80,25 +97,8 @@ func (c *Cache) ReferenceTable(indexID IndexID) (*IndexMetadata, error) {
 	return meta, nil
 }
 
-func (c *Cache) EntityCount(indexID IndexID, archiveID ArchiveID) (int, error) {
-	meta, err := c.ReferenceTable(indexID)
-	if err != nil {
-		return 0, fmt.Errorf("reading reference table: %w", err)
-	}
-	archive, err := meta.ArchiveByID(archiveID)
-	if err != nil {
-		return 0, fmt.Errorf("getting archive: %w", err)
-	}
-	return archive.EntryCount, nil
-}
-
 func (c *Cache) ItemDefinitions() (map[uint16]*ItemDefinition, error) {
-	entryCount, err := c.EntityCount(2, 10)
-	if err != nil {
-		return nil, fmt.Errorf("getting item entity count: %w", err)
-	}
-
-	group, err := c.ArchiveGroup(2, 10, entryCount)
+	group, err := c.ArchiveGroup(2, 10)
 	if err != nil {
 		return nil, fmt.Errorf("getting items archive group: %w", err)
 	}
@@ -123,12 +123,7 @@ func (c *Cache) ExportItemDefinitions(outputDir string, mode JSONExportMode, fil
 }
 
 func (c *Cache) NPCDefinitions() (map[uint16]*NPCDefinition, error) {
-	entryCount, err := c.EntityCount(2, 9)
-	if err != nil {
-		return nil, fmt.Errorf("getting npc entity count: %w", err)
-	}
-
-	group, err := c.ArchiveGroup(2, 9, entryCount)
+	group, err := c.ArchiveGroup(2, 9)
 	if err != nil {
 		return nil, fmt.Errorf("getting npcs archive group: %w", err)
 	}
@@ -153,12 +148,7 @@ func (c *Cache) ExportNPCDefinitions(outputDir string, mode JSONExportMode, file
 }
 
 func (c *Cache) ObjectDefinitions() (map[uint16]*ObjectDefinition, error) {
-	entryCount, err := c.EntityCount(2, 6)
-	if err != nil {
-		return nil, fmt.Errorf("getting object entity count: %w", err)
-	}
-
-	group, err := c.ArchiveGroup(2, 6, entryCount)
+	group, err := c.ArchiveGroup(2, 6)
 	if err != nil {
 		return nil, fmt.Errorf("getting objects archive group: %w", err)
 	}
@@ -218,12 +208,7 @@ func (c *Cache) ExportSprites(outputDir string) error {
 }
 
 func (c *Cache) Enums() (map[uint16]*Enum, error) {
-	entryCount, err := c.EntityCount(2, 8)
-	if err != nil {
-		return nil, fmt.Errorf("getting enum entity count: %w", err)
-	}
-
-	group, err := c.ArchiveGroup(2, 8, entryCount)
+	group, err := c.ArchiveGroup(2, 8)
 	if err != nil {
 		return nil, fmt.Errorf("getting enums archive group: %w", err)
 	}
@@ -240,25 +225,20 @@ func (c *Cache) Enums() (map[uint16]*Enum, error) {
 }
 
 func (c *Cache) Structs() (map[uint16]*Struct, error) {
-	entryCount, err := c.EntityCount(2, 34)
-	if err != nil {
-		return nil, fmt.Errorf("getting struct type entity count: %w", err)
-	}
-
-	group, err := c.ArchiveGroup(2, 34, entryCount)
+	group, err := c.ArchiveGroup(2, 34)
 	if err != nil {
 		return nil, fmt.Errorf("getting struct types archive group: %w", err)
 	}
 
-	types := make(map[uint16]*Struct, len(group.Files))
+	structs := make(map[uint16]*Struct, len(group.Files))
 	for _, file := range group.Files {
 		def, err := NewStruct(uint16(file.ID), file.Data)
 		if err != nil {
 			return nil, fmt.Errorf("creating struct type: %w", err)
 		}
-		types[uint16(file.ID)] = def
+		structs[uint16(file.ID)] = def
 	}
-	return types, nil
+	return structs, nil
 }
 
 func (c *Cache) Close() error {
