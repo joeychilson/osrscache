@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -138,7 +137,13 @@ func (i *Index) ArchiveIDs() []ArchiveID {
 }
 
 type IndexMetadata struct {
-	Archives []ArchiveMetadata
+	Protocol              uint8
+	Version               uint32
+	HasNames              bool
+	HasDigests            bool
+	HasLengths            bool
+	HasCompressedChecksum bool
+	Archives              []ArchiveMetadata
 }
 
 func NewIndexMetadata(data []byte) (*IndexMetadata, error) {
@@ -149,11 +154,10 @@ func NewIndexMetadata(data []byte) (*IndexMetadata, error) {
 		return nil, fmt.Errorf("reading protocol: %w", err)
 	}
 
+	var version uint32
 	if protocol >= 6 {
-		// TODO: Revision?
-		_, err := reader.Seek(4, io.SeekCurrent)
-		if err != nil {
-			return nil, fmt.Errorf("skipping unknown uint32: %w", err)
+		if err := binary.Read(reader, binary.BigEndian, &version); err != nil {
+			return nil, fmt.Errorf("reading version: %w", err)
 		}
 	}
 
@@ -173,7 +177,13 @@ func NewIndexMetadata(data []byte) (*IndexMetadata, error) {
 	}
 
 	im := &IndexMetadata{
-		Archives: make([]ArchiveMetadata, archiveCount),
+		Protocol:              protocol,
+		Version:               version,
+		HasNames:              hasNames,
+		HasDigests:            hasDigests,
+		HasLengths:            hasLengths,
+		HasCompressedChecksum: hasCompressedChecksum,
+		Archives:              make([]ArchiveMetadata, archiveCount),
 	}
 
 	var prevArchiveId uint32
