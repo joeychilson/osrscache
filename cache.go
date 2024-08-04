@@ -21,7 +21,7 @@ func (c *Cache) Index(groupID int) (*Index, error) {
 		return nil, fmt.Errorf("decompressing reference table: %w", err)
 	}
 
-	index, err := NewIndex(decompressedGroupData)
+	index, err := ReadIndex(decompressedGroupData)
 	if err != nil {
 		return nil, fmt.Errorf("creating reference table index: %w", err)
 	}

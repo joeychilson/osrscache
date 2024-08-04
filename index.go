@@ -41,7 +41,7 @@ const (
 	FlagUncompressedChecksums = 0x08
 )
 
-func NewIndex(data []byte) (*Index, error) {
+func ReadIndex(data []byte) (*Index, error) {
 	reader := NewReader(data)
 
 	protocolID, err := reader.ReadUint8()
