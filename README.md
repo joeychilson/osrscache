@@ -10,29 +10,64 @@ Note: This library is still under development.
 package main
 
 import (
-	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/joeychilson/osrscache"
+	"github.com/joeychilson/osrscache/jagex"
 )
 
 func main() {
-	cache, err := osrscache.NewCache("path/to/osrs/cache")
-	if err != nil {
-		panic(err)
-	}
-	defer cache.Close()
+	startTime := time.Now()
 
-	items, err := cache.ItemDefinitions()
+	homeFolder, err := os.UserHomeDir()
 	if err != nil {
-		panic(err)
+		log.Fatalf("getting home directory: %v", err)
 	}
 
-	item, err := items.Get(4151)
+	cachePath := filepath.Join(homeFolder, "Jagex", "Old School Runescape", "data")
+
+	store, err := jagex.Open(cachePath)
 	if err != nil {
-		panic(err)
+		log.Fatalf("opening store: %v", err)
+	}
+	defer store.Close()
+
+	cache := osrscache.NewCache(store)
+
+	err = cache.ExportItemDefinitions("items", osrscache.JsonExportModeIndividual)
+	if err != nil {
+		log.Fatalf("exporting item definitions: %v", err)
 	}
 
-	fmt.Println(item)
+	err = cache.ExportNPCDefinitions("npcs", osrscache.JsonExportModeIndividual)
+	if err != nil {
+		log.Fatalf("exporting npc definitions: %v", err)
+	}
+
+	err = cache.ExportObjectDefinitions("objects", osrscache.JsonExportModeIndividual)
+	if err != nil {
+		log.Fatalf("exporting object definitions: %v", err)
+	}
+
+	err = cache.ExportEnums("enums", osrscache.JsonExportModeIndividual)
+	if err != nil {
+		log.Fatalf("exporting enums: %v", err)
+	}
+
+	err = cache.ExportStructs("structs", osrscache.JsonExportModeIndividual)
+	if err != nil {
+		log.Fatalf("exporting structs: %v", err)
+	}
+
+	err = cache.ExportSprites("sprites")
+	if err != nil {
+		log.Fatalf("exporting sprites: %v", err)
+	}
+
+	log.Printf("took %v", time.Since(startTime))
 }
 ```
 

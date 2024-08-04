@@ -1,15 +1,13 @@
 package osrscache
 
 import (
-	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 )
 
 type ItemDefinition struct {
-	ID                       uint16             `json:"id"`
+	ID                       int                `json:"id"`
 	Category                 uint16             `json:"category"`
 	Name                     string             `json:"name"`
 	Examine                  string             `json:"examine"`
@@ -68,7 +66,7 @@ type CharacterModelData struct {
 	ChatHeadModelSecondary uint16 `json:"chat_head_model_secondary"`
 }
 
-func NewItemDefinition(id uint16, data []byte) (*ItemDefinition, error) {
+func NewItemDefinition(id int, data []byte) (*ItemDefinition, error) {
 	def := &ItemDefinition{
 		ID:               id,
 		Name:             "null",
@@ -89,10 +87,10 @@ func NewItemDefinition(id uint16, data []byte) (*ItemDefinition, error) {
 }
 
 func (def *ItemDefinition) Read(data []byte) error {
-	reader := bytes.NewReader(data)
+	reader := NewReader(data)
 	for {
-		var opcode uint8
-		if err := binary.Read(reader, binary.BigEndian, &opcode); err != nil {
+		opcode, err := reader.ReadUint8()
+		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
 			}
@@ -103,249 +101,289 @@ func (def *ItemDefinition) Read(data []byte) error {
 		}
 		switch opcode {
 		case 1:
-			if err := binary.Read(reader, binary.BigEndian, &def.InventoryModelData.ID); err != nil {
+			def.InventoryModelData.ID, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading inventory model id: %w", err)
 			}
 		case 2:
-			name, err := ReadString(reader)
+			def.Name, err = reader.ReadString()
 			if err != nil {
 				return fmt.Errorf("reading name: %w", err)
 			}
-			def.Name = name
 		case 3:
-			examine, err := ReadString(reader)
+			def.Examine, err = reader.ReadString()
 			if err != nil {
 				return fmt.Errorf("reading examine: %w", err)
 			}
-			def.Examine = examine
 		case 4:
-			if err := binary.Read(reader, binary.BigEndian, &def.InventoryModelData.Zoom); err != nil {
+			def.InventoryModelData.Zoom, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading inventory model zoom2d: %w", err)
 			}
 		case 5:
-			if err := binary.Read(reader, binary.BigEndian, &def.InventoryModelData.RotationX); err != nil {
+			def.InventoryModelData.RotationX, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading inventory model xan2d: %w", err)
 			}
 		case 6:
-			if err := binary.Read(reader, binary.BigEndian, &def.InventoryModelData.RotationY); err != nil {
+			def.InventoryModelData.RotationY, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading inventory model yan2d: %w", err)
 			}
 		case 7:
-			if err := binary.Read(reader, binary.BigEndian, &def.InventoryModelData.OffsetX); err != nil {
+			def.InventoryModelData.OffsetX, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading inventory model xoffset2d: %w", err)
 			}
 		case 8:
-			if err := binary.Read(reader, binary.BigEndian, &def.InventoryModelData.OffsetY); err != nil {
+			def.InventoryModelData.OffsetY, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading inventory model yoffset2d: %w", err)
 			}
 		case 11:
 			def.Stackable = true
 		case 12:
-			if err := binary.Read(reader, binary.BigEndian, &def.Value); err != nil {
+			def.Value, err = reader.ReadInt32()
+			if err != nil {
 				return fmt.Errorf("reading value: %w", err)
 			}
 		case 13:
-			if err := binary.Read(reader, binary.BigEndian, &def.WearPositionPrimary); err != nil {
+			def.WearPositionPrimary, err = reader.ReadUint8()
+			if err != nil {
 				return fmt.Errorf("reading wear position primary: %w", err)
 			}
 		case 14:
-			if err := binary.Read(reader, binary.BigEndian, &def.WearPositionSecondary); err != nil {
+			def.WearPositionSecondary, err = reader.ReadUint8()
+			if err != nil {
 				return fmt.Errorf("reading wear position secondary: %w", err)
 			}
 		case 16:
 			def.MembersOnly = true
 		case 23:
-			if err := binary.Read(reader, binary.BigEndian, &def.CharacterModelDataMale.ModelPrimary); err != nil {
+			def.CharacterModelDataMale.ModelPrimary, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading male character model primary: %w", err)
 			}
-			if err := binary.Read(reader, binary.BigEndian, &def.CharacterModelDataMale.Offset); err != nil {
+			def.CharacterModelDataMale.Offset, err = reader.ReadUint8()
+			if err != nil {
 				return fmt.Errorf("reading male character model offset: %w", err)
 			}
 		case 24:
-			if err := binary.Read(reader, binary.BigEndian, &def.CharacterModelDataMale.ModelSecondary); err != nil {
+			def.CharacterModelDataMale.ModelSecondary, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading male character model secondary: %w", err)
 			}
 		case 25:
-			if err := binary.Read(reader, binary.BigEndian, &def.CharacterModelDataFemale.ModelPrimary); err != nil {
+			def.CharacterModelDataFemale.ModelPrimary, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading female character model primary: %w", err)
 			}
-			if err := binary.Read(reader, binary.BigEndian, &def.CharacterModelDataFemale.Offset); err != nil {
+			def.CharacterModelDataFemale.Offset, err = reader.ReadUint8()
+			if err != nil {
 				return fmt.Errorf("reading female character model offset: %w", err)
 			}
 		case 26:
-			if err := binary.Read(reader, binary.BigEndian, &def.CharacterModelDataFemale.ModelSecondary); err != nil {
+			def.CharacterModelDataFemale.ModelSecondary, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading female character model secondary: %w", err)
 			}
 		case 27:
-			if err := binary.Read(reader, binary.BigEndian, &def.WearPositionTertiary); err != nil {
+			def.WearPositionTertiary, err = reader.ReadUint8()
+			if err != nil {
 				return fmt.Errorf("reading wear position tertiary: %w", err)
 			}
 		case 30, 31, 32, 33, 34:
-			action, err := ReadString(reader)
+			def.ActionsGround[opcode-30], err = reader.ReadString()
 			if err != nil {
 				return fmt.Errorf("reading ground action 4: %w", err)
 			}
-			def.ActionsGround[opcode-30] = action
 		case 35, 36, 37, 38, 39:
-			action, err := ReadString(reader)
+			def.ActionsInventory[opcode-35], err = reader.ReadString()
 			if err != nil {
 				return fmt.Errorf("reading inventory action 4: %w", err)
 			}
-			def.ActionsInventory[opcode-35] = action
 		case 40:
-			var length uint8
-			if err := binary.Read(reader, binary.BigEndian, &length); err != nil {
+			length, err := reader.ReadUint8()
+			if err != nil {
 				return fmt.Errorf("reading param length: %w", err)
 			}
 			def.InventoryModelData.RecolorFrom = make([]uint16, length)
 			def.InventoryModelData.RecolorTo = make([]uint16, length)
 			for i := 0; i < int(length); i++ {
-				if err := binary.Read(reader, binary.BigEndian, &def.InventoryModelData.RecolorFrom[i]); err != nil {
+				def.InventoryModelData.RecolorFrom[i], err = reader.ReadUint16()
+				if err != nil {
 					return fmt.Errorf("reading recolor from: %w", err)
 				}
-				if err := binary.Read(reader, binary.BigEndian, &def.InventoryModelData.RecolorTo[i]); err != nil {
+				def.InventoryModelData.RecolorTo[i], err = reader.ReadUint16()
+				if err != nil {
 					return fmt.Errorf("reading recolor to: %w", err)
 				}
 			}
 		case 41:
-			var length uint8
-			if err := binary.Read(reader, binary.BigEndian, &length); err != nil {
+			length, err := reader.ReadUint8()
+			if err != nil {
 				return fmt.Errorf("reading param length: %w", err)
 			}
 			def.InventoryModelData.RetextureFrom = make([]uint16, length)
 			def.InventoryModelData.RetextureTo = make([]uint16, length)
 			for i := 0; i < int(length); i++ {
-				if err := binary.Read(reader, binary.BigEndian, &def.InventoryModelData.RetextureFrom[i]); err != nil {
+				def.InventoryModelData.RetextureFrom[i], err = reader.ReadUint16()
+				if err != nil {
 					return fmt.Errorf("reading recolor from: %w", err)
 				}
-				if err := binary.Read(reader, binary.BigEndian, &def.InventoryModelData.RetextureTo[i]); err != nil {
+				def.InventoryModelData.RetextureTo[i], err = reader.ReadUint16()
+				if err != nil {
 					return fmt.Errorf("reading recolor to: %w", err)
 				}
 			}
 		case 42:
-			if err := binary.Read(reader, binary.BigEndian, &def.ShiftClickDropIndex); err != nil {
+			def.ShiftClickDropIndex, err = reader.ReadUint8()
+			if err != nil {
 				return fmt.Errorf("reading shift click drop index: %w", err)
 			}
 		case 65:
 			def.Exchangeable = true
 		case 75:
-			if err := binary.Read(reader, binary.BigEndian, &def.Weight); err != nil {
+			def.Weight, err = reader.ReadInt16()
+			if err != nil {
 				return fmt.Errorf("reading weight: %w", err)
 			}
 		case 78:
-			if err := binary.Read(reader, binary.BigEndian, &def.CharacterModelDataMale.ModelTertiary); err != nil {
+			def.CharacterModelDataMale.ModelTertiary, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading male character model chat head model secondary: %w", err)
 			}
 		case 79:
-			if err := binary.Read(reader, binary.BigEndian, &def.CharacterModelDataFemale.ModelTertiary); err != nil {
+			def.CharacterModelDataFemale.ModelTertiary, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading female character model chat head model secondary: %w", err)
 			}
 		case 90:
-			if err := binary.Read(reader, binary.BigEndian, &def.CharacterModelDataMale.ChatHeadModelPrimary); err != nil {
+			def.CharacterModelDataMale.ChatHeadModelPrimary, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading male character model chat head model primary: %w", err)
 			}
 		case 91:
-			if err := binary.Read(reader, binary.BigEndian, &def.CharacterModelDataFemale.ChatHeadModelPrimary); err != nil {
+			def.CharacterModelDataFemale.ChatHeadModelPrimary, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading female character model chat head model primary: %w", err)
 			}
 		case 92:
-			if err := binary.Read(reader, binary.BigEndian, &def.CharacterModelDataMale.ChatHeadModelSecondary); err != nil {
+			def.CharacterModelDataMale.ChatHeadModelSecondary, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading male character model chat head model secondary: %w", err)
 			}
 		case 93:
-			if err := binary.Read(reader, binary.BigEndian, &def.CharacterModelDataFemale.ChatHeadModelSecondary); err != nil {
+			def.CharacterModelDataFemale.ChatHeadModelSecondary, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading female character model chat head model secondary: %w", err)
 			}
 		case 94:
-			if err := binary.Read(reader, binary.BigEndian, &def.Category); err != nil {
+			def.Category, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading category: %w", err)
 			}
 		case 95:
-			if err := binary.Read(reader, binary.BigEndian, &def.InventoryModelData.RotationZ); err != nil {
+			def.InventoryModelData.RotationZ, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading inventory model rotation z: %w", err)
 			}
 		case 97:
-			if err := binary.Read(reader, binary.BigEndian, &def.NotedItemID); err != nil {
+			def.NotedItemID, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading noted item id: %w", err)
 			}
 		case 98:
-			if err := binary.Read(reader, binary.BigEndian, &def.NotedTemplate); err != nil {
+			def.NotedTemplate, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading noted template: %w", err)
 			}
 		case 100, 101, 102, 103, 104, 105, 106, 107, 108, 109:
-			if err := binary.Read(reader, binary.BigEndian, &def.StackItemIDs[opcode-100]); err != nil {
+			def.StackItemIDs[opcode-100], err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading stack item ids: %w", err)
 			}
-			if err := binary.Read(reader, binary.BigEndian, &def.StackQuantities[opcode-100]); err != nil {
+			def.StackQuantities[opcode-100], err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading stack quantities: %w", err)
 			}
 		case 110:
-			if err := binary.Read(reader, binary.BigEndian, &def.InventoryModelData.ScaleX); err != nil {
+			def.InventoryModelData.ScaleX, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading inventory model scale x: %w", err)
 			}
 		case 111:
-			if err := binary.Read(reader, binary.BigEndian, &def.InventoryModelData.ScaleY); err != nil {
+			def.InventoryModelData.ScaleY, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading inventory model scale y: %w", err)
 			}
 		case 112:
-			if err := binary.Read(reader, binary.BigEndian, &def.InventoryModelData.ScaleZ); err != nil {
+			def.InventoryModelData.ScaleZ, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading inventory model scale z: %w", err)
 			}
 		case 113:
-			if err := binary.Read(reader, binary.BigEndian, &def.InventoryModelData.Ambient); err != nil {
+			def.InventoryModelData.Ambient, err = reader.ReadInt8()
+			if err != nil {
 				return fmt.Errorf("reading inventory model ambient: %w", err)
 			}
 		case 114:
-			if err := binary.Read(reader, binary.BigEndian, &def.InventoryModelData.Contrast); err != nil {
+			def.InventoryModelData.Contrast, err = reader.ReadInt8()
+			if err != nil {
 				return fmt.Errorf("reading inventory model contrast: %w", err)
 			}
 		case 115:
-			if err := binary.Read(reader, binary.BigEndian, &def.Team); err != nil {
+			def.Team, err = reader.ReadInt8()
+			if err != nil {
 				return fmt.Errorf("reading team: %w", err)
 			}
 		case 139:
-			if err := binary.Read(reader, binary.BigEndian, &def.BoughtLinkID); err != nil {
+			def.BoughtLinkID, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading bought link id: %w", err)
 			}
 		case 140:
-			if err := binary.Read(reader, binary.BigEndian, &def.BoughtTemplate); err != nil {
+			def.BoughtTemplate, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading bought template: %w", err)
 			}
 		case 148:
-			if err := binary.Read(reader, binary.BigEndian, &def.PlaceholderItemID); err != nil {
+			def.PlaceholderItemID, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading placeholder item id: %w", err)
 			}
 		case 149:
-			if err := binary.Read(reader, binary.BigEndian, &def.PlaceholderTemplate); err != nil {
+			def.PlaceholderTemplate, err = reader.ReadUint16()
+			if err != nil {
 				return fmt.Errorf("reading placeholder template: %w", err)
 			}
 		case 249:
-			var length uint8
-			if err := binary.Read(reader, binary.BigEndian, &length); err != nil {
+			length, err := reader.ReadUint8()
+			if err != nil {
 				return fmt.Errorf("reading param length: %w", err)
 			}
 			def.Params = make(map[uint32]any, length)
 			for i := 0; i < int(length); i++ {
-				var isString uint8
-				if err := binary.Read(reader, binary.BigEndian, &isString); err != nil {
+				isString, err := reader.ReadUint8()
+				if err != nil {
 					return fmt.Errorf("reading is string: %w", err)
 				}
 
-				key, err := ReadUint24(reader)
+				key, err := reader.ReadUint24()
 				if err != nil {
 					return fmt.Errorf("reading key: %w", err)
 				}
 
 				var value interface{}
 				if isString == 1 {
-					strValue, err := ReadString(reader)
+					strValue, err := reader.ReadString()
 					if err != nil {
 						return fmt.Errorf("reading string value: %w", err)
 					}
 					value = strValue
 				} else {
-					var intValue uint32
-					if err := binary.Read(reader, binary.BigEndian, &intValue); err != nil {
+					intValue, err := reader.ReadUint32()
+					if err != nil {
 						return fmt.Errorf("reading uint32 value: %w", err)
 					}
 					value = intValue

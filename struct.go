@@ -1,19 +1,17 @@
 package osrscache
 
 import (
-	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 )
 
 type Struct struct {
-	ID     uint16
+	ID     int
 	Params map[uint32]any
 }
 
-func NewStruct(id uint16, data []byte) (*Struct, error) {
+func NewStruct(id int, data []byte) (*Struct, error) {
 	s := &Struct{
 		ID:     id,
 		Params: make(map[uint32]any),
@@ -25,10 +23,10 @@ func NewStruct(id uint16, data []byte) (*Struct, error) {
 }
 
 func (s *Struct) Read(data []byte) error {
-	reader := bytes.NewReader(data)
+	reader := NewReader(data)
 	for {
-		var opcode uint8
-		if err := binary.Read(reader, binary.BigEndian, &opcode); err != nil {
+		opcode, err := reader.ReadUint8()
+		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
 			}
@@ -39,32 +37,32 @@ func (s *Struct) Read(data []byte) error {
 		}
 		switch opcode {
 		case 249:
-			var length uint8
-			if err := binary.Read(reader, binary.BigEndian, &length); err != nil {
+			length, err := reader.ReadUint8()
+			if err != nil {
 				return fmt.Errorf("reading param length: %w", err)
 			}
 			s.Params = make(map[uint32]any, length)
 			for i := 0; i < int(length); i++ {
-				var isString uint8
-				if err := binary.Read(reader, binary.BigEndian, &isString); err != nil {
+				isString, err := reader.ReadUint8()
+				if err != nil {
 					return fmt.Errorf("reading is string: %w", err)
 				}
 
-				key, err := ReadUint24(reader)
+				key, err := reader.ReadUint24()
 				if err != nil {
 					return fmt.Errorf("reading key: %w", err)
 				}
 
 				var value interface{}
 				if isString == 1 {
-					strValue, err := ReadString(reader)
+					strValue, err := reader.ReadString()
 					if err != nil {
 						return fmt.Errorf("reading string value: %w", err)
 					}
 					value = strValue
 				} else {
-					var intValue uint32
-					if err := binary.Read(reader, binary.BigEndian, &intValue); err != nil {
+					intValue, err := reader.ReadUint32()
+					if err != nil {
 						return fmt.Errorf("reading uint32 value: %w", err)
 					}
 					value = intValue
@@ -73,7 +71,6 @@ func (s *Struct) Read(data []byte) error {
 			}
 		default:
 			return fmt.Errorf("unsupported opcode: %d", opcode)
-
 		}
 	}
 	return nil

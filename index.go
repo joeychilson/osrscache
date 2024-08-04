@@ -1,278 +1,301 @@
 package osrscache
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
-	"os"
-	"path/filepath"
-	"sort"
-	"strconv"
-	"strings"
-	"sync"
 )
 
-const IndexFilePrefix = "main_file_cache.idx"
+const (
+	DigestBits  = 512
+	DigestBytes = DigestBits >> 3
+)
 
-type IndexID uint8
+type Protocol uint8
 
-type Indices struct {
-	indices map[IndexID]*Index
-	mu      sync.RWMutex
-}
+const (
+	ProtocolOriginal Protocol = iota + 5
+	ProtocolVersioned
+	ProtocolSmart
+)
 
-func NewIndices(path string) (*Indices, error) {
-	indices := &Indices{
-		indices: make(map[IndexID]*Index),
+func ProtocolFromID(id uint8) (Protocol, error) {
+	if Protocol(id) >= ProtocolOriginal && Protocol(id) <= ProtocolSmart {
+		return Protocol(id), nil
 	}
-
-	err := filepath.Walk(path, func(filePath string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if strings.HasPrefix(info.Name(), IndexFilePrefix) {
-			idStr := strings.TrimPrefix(info.Name(), IndexFilePrefix)
-			id, err := strconv.ParseUint(idStr, 10, 8)
-			if err != nil {
-				return fmt.Errorf("parsing index ID: %w", err)
-			}
-			index, err := NewIndex(IndexID(id), filePath)
-			if err != nil {
-				return fmt.Errorf("creating index: %w", err)
-			}
-			indices.indices[IndexID(id)] = index
-		}
-		return nil
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("walking cache directory: %w", err)
-	}
-	return indices, nil
-}
-
-func (i *Indices) Get(id IndexID) (*Index, error) {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-
-	index, ok := i.indices[IndexID(id)]
-	if !ok {
-		return nil, fmt.Errorf("index not found: %d", id)
-	}
-	return index, nil
-}
-
-func (i *Indices) Count() int {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-
-	return len(i.indices)
-}
-
-func (i *Indices) IndexIDs() []uint8 {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-
-	ids := make([]uint8, 0, len(i.indices))
-	for id := range i.indices {
-		ids = append(ids, uint8(id))
-	}
-	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
-	return ids
+	return 0, fmt.Errorf("unknown protocol id: %d", id)
 }
 
 type Index struct {
-	ID          IndexID
-	ArchiveRefs map[ArchiveID]*ArchiveRef
-	mu          sync.RWMutex
+	Protocol                 Protocol
+	Version                  uint32
+	HasNames                 bool
+	HasDigests               bool
+	HasLengths               bool
+	HasUncompressedChecksums bool
+	Groups                   []*Group
 }
 
-func NewIndex(id IndexID, file string) (*Index, error) {
-	data, err := os.ReadFile(file)
+const (
+	FlagNames                 = 0x01
+	FlagDigests               = 0x02
+	FlagLengths               = 0x04
+	FlagUncompressedChecksums = 0x08
+)
+
+func NewIndex(data []byte) (*Index, error) {
+	reader := NewReader(data)
+
+	protocolID, err := reader.ReadUint8()
 	if err != nil {
-		return nil, fmt.Errorf("reading index file: %w", err)
+		return nil, fmt.Errorf("reading protocol id: %w", err)
 	}
 
-	index := &Index{
-		ID:          id,
-		ArchiveRefs: make(map[ArchiveID]*ArchiveRef),
-	}
-
-	for i := 0; i < len(data); i += ArchiveRefLen {
-		if i+ArchiveRefLen > len(data) {
-			break
-		}
-
-		archiveID := ArchiveID(i / ArchiveRefLen)
-
-		archiveRef, err := NewArchiveRef(id, archiveID, data[i:i+ArchiveRefLen])
-		if err != nil {
-			return nil, fmt.Errorf("parsing archive ref: %w", err)
-		}
-		index.ArchiveRefs[archiveID] = archiveRef
-	}
-	return index, nil
-}
-
-func (i *Index) ArchiveRef(id ArchiveID) (*ArchiveRef, error) {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-
-	ref, ok := i.ArchiveRefs[id]
-	if !ok {
-		return nil, fmt.Errorf("archive ref not found: %d", id)
-	}
-	return ref, nil
-}
-
-func (i *Index) ArchiveIDs() []ArchiveID {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-
-	ids := make([]ArchiveID, 0, len(i.ArchiveRefs))
-	for id := range i.ArchiveRefs {
-		ids = append(ids, id)
-	}
-	return ids
-}
-
-type IndexMetadata struct {
-	Protocol              uint8
-	Version               uint32
-	HasNames              bool
-	HasDigests            bool
-	HasLengths            bool
-	HasCompressedChecksum bool
-	Archives              []ArchiveMetadata
-}
-
-func NewIndexMetadata(data []byte) (*IndexMetadata, error) {
-	reader := bytes.NewReader(data)
-
-	var protocol uint8
-	if err := binary.Read(reader, binary.BigEndian, &protocol); err != nil {
-		return nil, fmt.Errorf("reading protocol: %w", err)
+	protocol, err := ProtocolFromID(protocolID)
+	if err != nil {
+		return nil, fmt.Errorf("getting protocol: %w", err)
 	}
 
 	var version uint32
-	if protocol >= 6 {
-		if err := binary.Read(reader, binary.BigEndian, &version); err != nil {
+	if protocol >= ProtocolVersioned {
+		version, err = reader.ReadUint32()
+		if err != nil {
 			return nil, fmt.Errorf("reading version: %w", err)
 		}
 	}
 
-	var flags uint8
-	if err := binary.Read(reader, binary.BigEndian, &flags); err != nil {
+	flags, err := reader.ReadUint8()
+	if err != nil {
 		return nil, fmt.Errorf("reading flags: %w", err)
 	}
 
-	hasNames := (flags & 0x1) != 0
-	hasDigests := (flags & 0x2) != 0
-	hasLengths := (flags & 0x4) != 0
-	hasCompressedChecksum := (flags & 0x8) != 0
-
-	var archiveCount uint16
-	if err := binary.Read(reader, binary.BigEndian, &archiveCount); err != nil {
-		return nil, fmt.Errorf("reading archive count: %w", err)
+	size, err := readSize(reader, protocol)
+	if err != nil {
+		return nil, fmt.Errorf("reading size: %w", err)
 	}
 
-	im := &IndexMetadata{
-		Protocol:              protocol,
-		Version:               version,
-		HasNames:              hasNames,
-		HasDigests:            hasDigests,
-		HasLengths:            hasLengths,
-		HasCompressedChecksum: hasCompressedChecksum,
-		Archives:              make([]ArchiveMetadata, archiveCount),
+	index := &Index{
+		Protocol:                 protocol,
+		Version:                  version,
+		HasNames:                 flags&FlagNames != 0,
+		HasDigests:               flags&FlagDigests != 0,
+		HasLengths:               flags&FlagLengths != 0,
+		HasUncompressedChecksums: flags&FlagUncompressedChecksums != 0,
+		Groups:                   make([]*Group, size),
 	}
 
-	var prevArchiveId uint32
-	for i := range im.Archives {
-		var delta uint16
-		if err := binary.Read(reader, binary.BigEndian, &delta); err != nil {
-			return nil, fmt.Errorf("reading archive ID delta: %w", err)
+	prevGroupID := 0
+	for i := 0; i < size; i++ {
+		delta, err := readSize(reader, protocol)
+		if err != nil {
+			return nil, fmt.Errorf("reading delta: %w", err)
 		}
-		im.Archives[i].ID = ArchiveID(prevArchiveId + uint32(delta))
-		prevArchiveId = uint32(im.Archives[i].ID)
+		groupID := prevGroupID + delta
+		index.Groups[i] = &Group{ID: groupID, Files: make([]*File, 0)}
+		prevGroupID = groupID
 	}
 
-	if hasNames {
-		for i := range im.Archives {
-			if err := binary.Read(reader, binary.BigEndian, &im.Archives[i].NameHash); err != nil {
+	if index.HasNames {
+		for i := range index.Groups {
+			nameHash, err := reader.ReadInt32()
+			if err != nil {
 				return nil, fmt.Errorf("reading name hash: %w", err)
 			}
+			index.Groups[i].NameHash = nameHash
 		}
 	}
 
-	for i := range im.Archives {
-		if err := binary.Read(reader, binary.BigEndian, &im.Archives[i].CRC); err != nil {
-			return nil, fmt.Errorf("reading CRC: %w", err)
+	for i := range index.Groups {
+		checksum, err := reader.ReadInt32()
+		if err != nil {
+			return nil, fmt.Errorf("reading checksum: %w", err)
 		}
+		index.Groups[i].Checksum = checksum
 	}
 
-	if hasCompressedChecksum {
-		for i := range im.Archives {
-			if err := binary.Read(reader, binary.BigEndian, &im.Archives[i].CompressedChecksum); err != nil {
-				return nil, fmt.Errorf("reading compressed checksum: %w", err)
+	if index.HasUncompressedChecksums {
+		for i := range index.Groups {
+			uncompressedChecksum, err := reader.ReadInt32()
+			if err != nil {
+				return nil, fmt.Errorf("reading uncompressed checksum: %w", err)
 			}
+			index.Groups[i].UncompressedChecksum = uncompressedChecksum
 		}
 	}
 
-	if hasDigests {
-		for i := range im.Archives {
-			if err := binary.Read(reader, binary.BigEndian, &im.Archives[i].Digests); err != nil {
-				return nil, fmt.Errorf("reading digests: %w", err)
+	if index.HasDigests {
+		for i := range index.Groups {
+			digest, err := reader.ReadBytes(DigestBytes)
+			if err != nil {
+				return nil, fmt.Errorf("reading digest: %w", err)
 			}
+			index.Groups[i].Digest = digest
 		}
 	}
 
-	if hasLengths {
-		for i := range im.Archives {
-			if err := binary.Read(reader, binary.BigEndian, &im.Archives[i].CompressedSize); err != nil {
-				return nil, fmt.Errorf("reading compressed size: %w", err)
+	if index.HasLengths {
+		for i := range index.Groups {
+			length, err := reader.ReadInt32()
+			if err != nil {
+				return nil, fmt.Errorf("reading length: %w", err)
 			}
-			if err := binary.Read(reader, binary.BigEndian, &im.Archives[i].UncompressedSize); err != nil {
-				return nil, fmt.Errorf("reading uncompressed size: %w", err)
+			index.Groups[i].Length = length
+
+			uncompressedLength, err := reader.ReadInt32()
+			if err != nil {
+				return nil, fmt.Errorf("reading uncompressed length: %w", err)
 			}
+			index.Groups[i].UncompressedLength = uncompressedLength
 		}
 	}
 
-	for i := range im.Archives {
-		if err := binary.Read(reader, binary.BigEndian, &im.Archives[i].Version); err != nil {
+	for i := range index.Groups {
+		version, err := reader.ReadInt32()
+		if err != nil {
 			return nil, fmt.Errorf("reading version: %w", err)
 		}
+		index.Groups[i].Version = version
 	}
 
-	for i := range im.Archives {
-		var entryCount uint16
-		if err := binary.Read(reader, binary.BigEndian, &entryCount); err != nil {
-			return nil, fmt.Errorf("reading entry count: %w", err)
+	groupSizes := make([]int, size)
+	for i := range groupSizes {
+		groupSize, err := readSize(reader, protocol)
+		if err != nil {
+			return nil, fmt.Errorf("reading group size: %w", err)
 		}
-		im.Archives[i].EntryCount = int(entryCount)
+		groupSizes[i] = groupSize
 	}
 
-	for i := range im.Archives {
-		if im.Archives[i].EntryCount > 1 {
-			im.Archives[i].ValidIDs = make([]uint32, im.Archives[i].EntryCount)
-			var prevEntryId uint32
-			for j := range im.Archives[i].ValidIDs {
-				var delta uint16
-				if err := binary.Read(reader, binary.BigEndian, &delta); err != nil {
-					return nil, fmt.Errorf("reading entry ID delta: %w", err)
+	for i, group := range index.Groups {
+		groupSize := groupSizes[i]
+
+		prevFileID := 0
+		for j := 0; j < groupSize; j++ {
+			delta, err := readSize(reader, protocol)
+			if err != nil {
+				return nil, fmt.Errorf("reading file id delta: %w", err)
+			}
+			prevFileID += delta
+			group.Files = append(group.Files, &File{ID: prevFileID})
+		}
+	}
+
+	if index.HasNames {
+		for _, group := range index.Groups {
+			for _, file := range group.Files {
+				nameHash, err := reader.ReadInt32()
+				if err != nil {
+					return nil, fmt.Errorf("reading file name hash: %w", err)
 				}
-				im.Archives[i].ValidIDs[j] = prevEntryId + uint32(delta)
-				prevEntryId = im.Archives[i].ValidIDs[j]
+				file.NameHash = nameHash
 			}
 		}
 	}
-	return im, nil
+
+	return index, nil
 }
 
-func (im *IndexMetadata) ArchiveByID(id ArchiveID) (*ArchiveMetadata, error) {
-	for i := range im.Archives {
-		if im.Archives[i].ID == id {
-			return &im.Archives[i], nil
+func (i *Index) Group(id int) (*Group, error) {
+	for _, group := range i.Groups {
+		if group.ID == id {
+			return group, nil
 		}
 	}
-	return nil, fmt.Errorf("archive not found: %d", id)
+	return nil, fmt.Errorf("group %d not found", id)
+}
+
+func readSize(reader *Reader, protocol Protocol) (int, error) {
+	if protocol >= ProtocolSmart {
+		size, err := reader.ReadSmartUint()
+		if err != nil {
+			return 0, fmt.Errorf("reading size: %w", err)
+		}
+		return int(size), nil
+	} else {
+		size, err := reader.ReadUint16()
+		if err != nil {
+			return 0, fmt.Errorf("reading size: %w", err)
+		}
+		return int(size), nil
+	}
+}
+
+type Group struct {
+	ID                   int
+	NameHash             int32
+	Version              int32
+	Checksum             int32
+	UncompressedChecksum int32
+	Length               int32
+	UncompressedLength   int32
+	Digest               []byte
+	Files                []*File
+}
+
+type File struct {
+	ID       int
+	NameHash int32
+}
+
+func (g *Group) Unpack(data []byte) (map[int][]byte, error) {
+	if len(data) == 0 {
+		return nil, fmt.Errorf("data must be readable")
+	}
+
+	if len(g.Files) < 1 {
+		return nil, fmt.Errorf("group must have at least one file")
+	}
+
+	if len(g.Files) == 1 {
+		return map[int][]byte{g.Files[0].ID: data}, nil
+	}
+
+	stripes := int(data[len(data)-1])
+	trailerIndex := len(data) - (stripes * len(g.Files) * 4) - 1
+
+	if trailerIndex < 0 {
+		return nil, fmt.Errorf("invalid trailer index")
+	}
+
+	lens := make([]int, len(g.Files))
+	reader := NewReader(data[trailerIndex:])
+	for i := 0; i < stripes; i++ {
+		prevLen := 0
+		for j := range lens {
+			delta, err := reader.ReadInt32()
+			if err != nil {
+				return nil, fmt.Errorf("reading data delta: %w", err)
+			}
+			prevLen += int(delta)
+			lens[j] += prevLen
+		}
+	}
+
+	files := make(map[int][]byte, len(g.Files))
+	for i, file := range g.Files {
+		files[file.ID] = make([]byte, 0, lens[i])
+	}
+
+	dataIndex := 0
+	reader.Reset(data[trailerIndex:])
+	for i := 0; i < stripes; i++ {
+		prevLen := 0
+		for _, file := range g.Files {
+			delta, err := reader.ReadInt32()
+			if err != nil {
+				return nil, fmt.Errorf("reading data delta: %w", err)
+			}
+			prevLen += int(delta)
+			end := dataIndex + prevLen
+			if end > trailerIndex {
+				return nil, fmt.Errorf("data overflow")
+			}
+			files[file.ID] = append(files[file.ID], data[dataIndex:end]...)
+			dataIndex = end
+		}
+	}
+
+	if dataIndex != trailerIndex {
+		return nil, fmt.Errorf("data index does not match trailer index")
+	}
+
+	return files, nil
 }

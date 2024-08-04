@@ -1,115 +1,74 @@
 package osrscache
 
-import (
-	"fmt"
-	"path/filepath"
-)
-
-const ReferenceTableID = 255
+import "fmt"
 
 type Cache struct {
-	Data    *DataFile
-	Indices *Indices
+	Store Store
 }
 
-func NewCache(path string) (*Cache, error) {
-	data, err := NewDataFile(filepath.Join(path, "main_file_cache.dat2"))
-	if err != nil {
-		return nil, fmt.Errorf("opening dat2 file: %w", err)
-	}
-
-	indices, err := NewIndices(path)
-	if err != nil {
-		data.Close()
-		return nil, fmt.Errorf("creating indices: %w", err)
-	}
-	return &Cache{Data: data, Indices: indices}, nil
+func NewCache(store Store) *Cache {
+	return &Cache{Store: store}
 }
 
-func (c *Cache) ArchiveMetadata(indexID IndexID, archiveID ArchiveID) (*ArchiveMetadata, error) {
-	meta, err := c.ReferenceTable(indexID)
-	if err != nil {
-		return nil, fmt.Errorf("reading reference table: %w", err)
-	}
-	archive, err := meta.ArchiveByID(archiveID)
-	if err != nil {
-		return nil, fmt.Errorf("getting archive: %w", err)
-	}
-	return archive, nil
-}
-
-func (c *Cache) ArchiveData(indexID IndexID, archiveID ArchiveID) ([]byte, error) {
-	index, err := c.Indices.Get(indexID)
-	if err != nil {
-		return nil, fmt.Errorf("getting index: %w", err)
-	}
-
-	archiveRef, err := index.ArchiveRef(archiveID)
-	if err != nil {
-		return nil, fmt.Errorf("getting archive reference: %w", err)
-	}
-
-	data, err := c.Data.Read(archiveRef)
-	if err != nil {
-		return nil, fmt.Errorf("reading archive data: %w", err)
-	}
-	return data, nil
-}
-
-func (c *Cache) ArchiveGroup(indexID IndexID, archiveID ArchiveID) (*ArchiveGroup, error) {
-	data, err := c.ArchiveData(indexID, archiveID)
-	if err != nil {
-		return nil, fmt.Errorf("reading archive: %w", err)
-	}
-
-	archiveData, err := DecompressArchiveData(data)
-	if err != nil {
-		return nil, fmt.Errorf("decompressing archive: %w", err)
-	}
-
-	archiveMetadata, err := c.ArchiveMetadata(indexID, archiveID)
-	if err != nil {
-		return nil, fmt.Errorf("getting archive metadata: %w", err)
-	}
-
-	group, err := NewArchiveGroup(archiveMetadata, archiveData)
-	if err != nil {
-		return nil, fmt.Errorf("creating archive group: %w", err)
-	}
-	return group, nil
-}
-
-func (c *Cache) ReferenceTable(indexID IndexID) (*IndexMetadata, error) {
-	archive, err := c.ArchiveData(ReferenceTableID, ArchiveID(indexID))
+func (c *Cache) Index(groupID int) (*Index, error) {
+	groupData, err := c.Store.Read(255, groupID)
 	if err != nil {
 		return nil, fmt.Errorf("reading reference table: %w", err)
 	}
 
-	archiveData, err := DecompressArchiveData(archive)
+	decompressedGroupData, err := DecompressData(groupData)
 	if err != nil {
 		return nil, fmt.Errorf("decompressing reference table: %w", err)
 	}
 
-	meta, err := NewIndexMetadata(archiveData)
+	index, err := NewIndex(decompressedGroupData)
 	if err != nil {
-		return nil, fmt.Errorf("creating reference table metadata: %w", err)
+		return nil, fmt.Errorf("creating reference table index: %w", err)
 	}
-	return meta, nil
+	return index, nil
 }
 
-func (c *Cache) ItemDefinitions() (map[uint16]*ItemDefinition, error) {
-	group, err := c.ArchiveGroup(2, 10)
+func (c *Cache) Files(archiveID int, groupID int) (map[int][]byte, error) {
+	groupData, err := c.Store.Read(archiveID, groupID)
 	if err != nil {
-		return nil, fmt.Errorf("getting items archive group: %w", err)
+		return nil, fmt.Errorf("reading group data: %w", err)
 	}
 
-	definitions := make(map[uint16]*ItemDefinition, len(group.Files))
-	for _, file := range group.Files {
-		def, err := NewItemDefinition(uint16(file.ID), file.Data)
+	decompresGroupData, err := DecompressData(groupData)
+	if err != nil {
+		return nil, fmt.Errorf("decompressing group data: %w", err)
+	}
+
+	index, err := c.Index(archiveID)
+	if err != nil {
+		return nil, fmt.Errorf("getting index: %w", err)
+	}
+
+	group, err := index.Group(groupID)
+	if err != nil {
+		return nil, fmt.Errorf("getting group: %w", err)
+	}
+
+	files, err := group.Unpack(decompresGroupData)
+	if err != nil {
+		return nil, fmt.Errorf("unpacking group: %w", err)
+	}
+	return files, nil
+}
+
+func (c *Cache) ItemDefinitions() (map[int]*ItemDefinition, error) {
+	files, err := c.Files(2, 10)
+	if err != nil {
+		return nil, fmt.Errorf("getting item definition files: %w", err)
+	}
+
+	definitions := make(map[int]*ItemDefinition, len(files))
+	for id, data := range files {
+		def, err := NewItemDefinition(id, data)
 		if err != nil {
 			return nil, fmt.Errorf("creating item definition: %w", err)
 		}
-		definitions[uint16(file.ID)] = def
+		definitions[id] = def
 	}
 	return definitions, nil
 }
@@ -122,44 +81,36 @@ func (c *Cache) ExportItemDefinitions(outputDir string, mode JSONExportMode) err
 	return NewJSONExporter(items, outputDir).ExportToJSON(mode, "item")
 }
 
-func (c *Cache) NPCDefinitions() (map[uint16]*NPCDefinition, error) {
-	group, err := c.ArchiveGroup(2, 9)
+func (c *Cache) NPCDefinitions() (map[int]*NPCDefinition, error) {
+	files, err := c.Files(2, 9)
 	if err != nil {
-		return nil, fmt.Errorf("getting npcs archive group: %w", err)
+		return nil, fmt.Errorf("getting npc definition files: %w", err)
 	}
 
-	definitions := make(map[uint16]*NPCDefinition, len(group.Files))
-	for _, file := range group.Files {
-		def, err := NewNPCDefinition(uint16(file.ID), file.Data)
+	definitions := make(map[int]*NPCDefinition, len(files))
+	for id, data := range files {
+		def, err := NewNPCDefinition(id, data)
 		if err != nil {
 			return nil, fmt.Errorf("creating npc definition: %w", err)
 		}
-		definitions[uint16(file.ID)] = def
+		definitions[id] = def
 	}
 	return definitions, nil
 }
 
-func (c *Cache) ExportNPCDefinitions(outputDir string, mode JSONExportMode) error {
-	npcs, err := c.NPCDefinitions()
+func (c *Cache) ObjectDefinitions() (map[int]*ObjectDefinition, error) {
+	files, err := c.Files(2, 6)
 	if err != nil {
-		return fmt.Errorf("getting npc definitions: %w", err)
-	}
-	return NewJSONExporter(npcs, outputDir).ExportToJSON(mode, "npc")
-}
-
-func (c *Cache) ObjectDefinitions() (map[uint16]*ObjectDefinition, error) {
-	group, err := c.ArchiveGroup(2, 6)
-	if err != nil {
-		return nil, fmt.Errorf("getting objects archive group: %w", err)
+		return nil, fmt.Errorf("getting object definition files: %w", err)
 	}
 
-	definitions := make(map[uint16]*ObjectDefinition, len(group.Files))
-	for _, file := range group.Files {
-		def, err := NewObjectDefinition(uint16(file.ID), file.Data)
+	definitions := make(map[int]*ObjectDefinition, len(files))
+	for id, data := range files {
+		def, err := NewObjectDefinition(id, data)
 		if err != nil {
 			return nil, fmt.Errorf("creating object definition: %w", err)
 		}
-		definitions[uint16(file.ID)] = def
+		definitions[id] = def
 	}
 	return definitions, nil
 }
@@ -172,54 +123,27 @@ func (c *Cache) ExportObjectDefinitions(outputDir string, mode JSONExportMode) e
 	return NewJSONExporter(npcs, outputDir).ExportToJSON(mode, "object")
 }
 
-func (c *Cache) Sprites() (map[uint32]*Sprite, error) {
-	index, err := c.Indices.Get(8)
+func (c *Cache) ExportNPCDefinitions(outputDir string, mode JSONExportMode) error {
+	npcs, err := c.NPCDefinitions()
 	if err != nil {
-		return nil, fmt.Errorf("getting index: %w", err)
+		return fmt.Errorf("getting npc definitions: %w", err)
 	}
-
-	sprites := make(map[uint32]*Sprite, len(index.ArchiveIDs()))
-	for _, id := range index.ArchiveIDs() {
-		archiveData, err := c.ArchiveData(8, id)
-		if err != nil {
-			return nil, fmt.Errorf("reading sprite archive: %w", err)
-		}
-
-		decompressedData, err := DecompressArchiveData(archiveData)
-		if err != nil {
-			return nil, fmt.Errorf("decompressing sprite archive: %w", err)
-		}
-
-		sprite, err := NewSprite(uint32(id), decompressedData)
-		if err != nil {
-			return nil, fmt.Errorf("creating sprite: %w", err)
-		}
-		sprites[uint32(id)] = sprite
-	}
-	return sprites, nil
+	return NewJSONExporter(npcs, outputDir).ExportToJSON(mode, "npc")
 }
 
-func (c *Cache) ExportSprites(outputDir string) error {
-	sprites, err := c.Sprites()
+func (c *Cache) Enums() (map[int]*Enum, error) {
+	files, err := c.Files(2, 8)
 	if err != nil {
-		return fmt.Errorf("getting sprites: %w", err)
-	}
-	return NewImageExporter(sprites, outputDir).ExportToImage("sprite")
-}
-
-func (c *Cache) Enums() (map[uint16]*Enum, error) {
-	group, err := c.ArchiveGroup(2, 8)
-	if err != nil {
-		return nil, fmt.Errorf("getting enums archive group: %w", err)
+		return nil, fmt.Errorf("getting enums files: %w", err)
 	}
 
-	enums := make(map[uint16]*Enum, len(group.Files))
-	for _, file := range group.Files {
-		enum, err := NewEnum(uint16(file.ID), file.Data)
+	enums := make(map[int]*Enum, len(files))
+	for id, data := range files {
+		enum, err := NewEnum(id, data)
 		if err != nil {
 			return nil, fmt.Errorf("creating enum type: %w", err)
 		}
-		enums[uint16(file.ID)] = enum
+		enums[id] = enum
 	}
 	return enums, nil
 }
@@ -232,19 +156,19 @@ func (c *Cache) ExportEnums(outputDir string, mode JSONExportMode) error {
 	return NewJSONExporter(enums, outputDir).ExportToJSON(mode, "enum")
 }
 
-func (c *Cache) Structs() (map[uint16]*Struct, error) {
-	group, err := c.ArchiveGroup(2, 34)
+func (c *Cache) Structs() (map[int]*Struct, error) {
+	files, err := c.Files(2, 34)
 	if err != nil {
-		return nil, fmt.Errorf("getting struct types archive group: %w", err)
+		return nil, fmt.Errorf("getting struct types files: %w", err)
 	}
 
-	structs := make(map[uint16]*Struct, len(group.Files))
-	for _, file := range group.Files {
-		def, err := NewStruct(uint16(file.ID), file.Data)
+	structs := make(map[int]*Struct, len(files))
+	for id, data := range files {
+		def, err := NewStruct(id, data)
 		if err != nil {
 			return nil, fmt.Errorf("creating struct type: %w", err)
 		}
-		structs[uint16(file.ID)] = def
+		structs[id] = def
 	}
 	return structs, nil
 }
@@ -257,6 +181,37 @@ func (c *Cache) ExportStructs(outputDir string, mode JSONExportMode) error {
 	return NewJSONExporter(structs, outputDir).ExportToJSON(mode, "struct")
 }
 
-func (c *Cache) Close() error {
-	return c.Data.Close()
+func (c *Cache) Sprites() (map[uint32]*Sprite, error) {
+	groups, err := c.Store.GroupList(8)
+	if err != nil {
+		return nil, fmt.Errorf("getting index: %w", err)
+	}
+
+	sprites := make(map[uint32]*Sprite, len(groups))
+	for group := range groups {
+		archiveData, err := c.Store.Read(8, group)
+		if err != nil {
+			return nil, fmt.Errorf("reading sprite archive: %w", err)
+		}
+
+		decompressedData, err := DecompressData(archiveData)
+		if err != nil {
+			return nil, fmt.Errorf("decompressing sprite archive: %w", err)
+		}
+
+		sprite, err := NewSprite(uint32(group), decompressedData)
+		if err != nil {
+			return nil, fmt.Errorf("creating sprite: %w", err)
+		}
+		sprites[uint32(group)] = sprite
+	}
+	return sprites, nil
+}
+
+func (c *Cache) ExportSprites(outputDir string) error {
+	sprites, err := c.Sprites()
+	if err != nil {
+		return fmt.Errorf("getting sprites: %w", err)
+	}
+	return NewImageExporter(sprites, outputDir).ExportToImage("sprite")
 }

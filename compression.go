@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/bzip2"
 	"compress/gzip"
-	"encoding/binary"
 	"fmt"
 	"io"
 )
@@ -15,27 +14,30 @@ const (
 	CompressionGZIP  = 2
 )
 
-func DecompressArchiveData(data []byte) ([]byte, error) {
-	reader := bytes.NewReader(data)
+func DecompressData(data []byte) ([]byte, error) {
+	reader := NewReader(data)
 
 	compressionType, err := reader.ReadByte()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read compression type: %w", err)
 	}
 
-	var compressedLength uint32
-	if err := binary.Read(reader, binary.BigEndian, &compressedLength); err != nil {
+	compressedLength, err := reader.ReadUint32()
+	if err != nil {
 		return nil, fmt.Errorf("failed to read compressed length: %w", err)
 	}
 
 	if compressionType == CompressionNone {
 		uncompressedData := make([]byte, compressedLength)
 		_, err := io.ReadFull(reader, uncompressedData)
-		return uncompressedData, err
+		if err != nil {
+			return nil, fmt.Errorf("failed to read uncompressed data: %w", err)
+		}
+		return uncompressedData, nil
 	}
 
-	var uncompressedLength uint32
-	if err := binary.Read(reader, binary.BigEndian, &uncompressedLength); err != nil {
+	uncompressedLength, err := reader.ReadUint32()
+	if err != nil {
 		return nil, fmt.Errorf("failed to read uncompressed length: %w", err)
 	}
 
