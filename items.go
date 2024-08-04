@@ -66,8 +66,8 @@ type CharacterModelData struct {
 	ChatHeadModelSecondary uint16 `json:"chat_head_model_secondary"`
 }
 
-func NewItemDefinition(id int, data []byte) (*ItemDefinition, error) {
-	def := &ItemDefinition{
+func NewItemDefinition(id int) *ItemDefinition {
+	return &ItemDefinition{
 		ID:               id,
 		Name:             "null",
 		ActionsGround:    [5]string{"", "", "Take", "", ""},
@@ -79,11 +79,6 @@ func NewItemDefinition(id int, data []byte) (*ItemDefinition, error) {
 			ScaleZ: 128,
 		},
 	}
-	err := def.Read(data)
-	if err != nil {
-		return nil, fmt.Errorf("reading item definition: %w", err)
-	}
-	return def, nil
 }
 
 func (def *ItemDefinition) Read(data []byte) error {

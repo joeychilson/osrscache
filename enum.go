@@ -14,16 +14,12 @@ type Enum struct {
 	Values       map[int32]any
 }
 
-func NewEnum(id int, data []byte) (*Enum, error) {
-	e := &Enum{
+func NewEnum(id int) *Enum {
+	return &Enum{
 		ID:           id,
 		DefaultValue: nil,
 		Values:       make(map[int32]any),
 	}
-	if err := e.Read(data); err != nil {
-		return nil, err
-	}
-	return e, nil
 }
 
 func (e *Enum) Read(data []byte) error {

@@ -64,9 +64,9 @@ func (c *Cache) ItemDefinitions() (map[int]*ItemDefinition, error) {
 
 	definitions := make(map[int]*ItemDefinition, len(files))
 	for id, data := range files {
-		def, err := NewItemDefinition(id, data)
-		if err != nil {
-			return nil, fmt.Errorf("creating item definition: %w", err)
+		def := NewItemDefinition(id)
+		if err := def.Read(data); err != nil {
+			return nil, fmt.Errorf("reading item definition: %w", err)
 		}
 		definitions[id] = def
 	}
@@ -89,13 +89,21 @@ func (c *Cache) NPCDefinitions() (map[int]*NPCDefinition, error) {
 
 	definitions := make(map[int]*NPCDefinition, len(files))
 	for id, data := range files {
-		def, err := NewNPCDefinition(id, data)
-		if err != nil {
-			return nil, fmt.Errorf("creating npc definition: %w", err)
+		def := NewNPCDefinition(id)
+		if err := def.Read(data); err != nil {
+			return nil, fmt.Errorf("reading npc definition: %w", err)
 		}
 		definitions[id] = def
 	}
 	return definitions, nil
+}
+
+func (c *Cache) ExportNPCDefinitions(outputDir string, mode JSONExportMode) error {
+	npcs, err := c.NPCDefinitions()
+	if err != nil {
+		return fmt.Errorf("getting npc definitions: %w", err)
+	}
+	return NewJSONExporter(npcs, outputDir).ExportToJSON(mode, "npc")
 }
 
 func (c *Cache) ObjectDefinitions() (map[int]*ObjectDefinition, error) {
@@ -106,9 +114,9 @@ func (c *Cache) ObjectDefinitions() (map[int]*ObjectDefinition, error) {
 
 	definitions := make(map[int]*ObjectDefinition, len(files))
 	for id, data := range files {
-		def, err := NewObjectDefinition(id, data)
-		if err != nil {
-			return nil, fmt.Errorf("creating object definition: %w", err)
+		def := NewObjectDefinition(id)
+		if err := def.Read(data); err != nil {
+			return nil, fmt.Errorf("reading object definition: %w", err)
 		}
 		definitions[id] = def
 	}
@@ -123,14 +131,6 @@ func (c *Cache) ExportObjectDefinitions(outputDir string, mode JSONExportMode) e
 	return NewJSONExporter(npcs, outputDir).ExportToJSON(mode, "object")
 }
 
-func (c *Cache) ExportNPCDefinitions(outputDir string, mode JSONExportMode) error {
-	npcs, err := c.NPCDefinitions()
-	if err != nil {
-		return fmt.Errorf("getting npc definitions: %w", err)
-	}
-	return NewJSONExporter(npcs, outputDir).ExportToJSON(mode, "npc")
-}
-
 func (c *Cache) Enums() (map[int]*Enum, error) {
 	files, err := c.Files(2, 8)
 	if err != nil {
@@ -139,9 +139,9 @@ func (c *Cache) Enums() (map[int]*Enum, error) {
 
 	enums := make(map[int]*Enum, len(files))
 	for id, data := range files {
-		enum, err := NewEnum(id, data)
-		if err != nil {
-			return nil, fmt.Errorf("creating enum type: %w", err)
+		enum := NewEnum(id)
+		if err := enum.Read(data); err != nil {
+			return nil, fmt.Errorf("reading enum: %w", err)
 		}
 		enums[id] = enum
 	}
@@ -164,9 +164,9 @@ func (c *Cache) Structs() (map[int]*Struct, error) {
 
 	structs := make(map[int]*Struct, len(files))
 	for id, data := range files {
-		def, err := NewStruct(id, data)
-		if err != nil {
-			return nil, fmt.Errorf("creating struct type: %w", err)
+		def := NewStruct(id)
+		if err := def.Read(data); err != nil {
+			return nil, fmt.Errorf("reading struct type: %w", err)
 		}
 		structs[id] = def
 	}
@@ -199,9 +199,9 @@ func (c *Cache) Sprites() (map[uint32]*Sprite, error) {
 			return nil, fmt.Errorf("decompressing sprite archive: %w", err)
 		}
 
-		sprite, err := NewSprite(uint32(group), decompressedData)
-		if err != nil {
-			return nil, fmt.Errorf("creating sprite: %w", err)
+		sprite := NewSprite(group)
+		if err := sprite.Read(decompressedData); err != nil {
+			return nil, fmt.Errorf("reading sprite: %w", err)
 		}
 		sprites[uint32(group)] = sprite
 	}

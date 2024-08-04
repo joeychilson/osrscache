@@ -73,8 +73,8 @@ type NPCAnimationData struct {
 	CrawlingRotate180   uint16 `json:"crawling_rotate_180"`
 }
 
-func NewNPCDefinition(id int, data []byte) (*NPCDefinition, error) {
-	def := &NPCDefinition{
+func NewNPCDefinition(id int) *NPCDefinition {
+	return &NPCDefinition{
 		ID:               id,
 		Name:             "null",
 		Interactable:     true,
@@ -86,10 +86,6 @@ func NewNPCDefinition(id int, data []byte) (*NPCDefinition, error) {
 			RotateFlag:  true,
 		},
 	}
-	if err := def.Read(data); err != nil {
-		return nil, fmt.Errorf("reading npc definition: %w", err)
-	}
-	return def, nil
 }
 
 func (def *NPCDefinition) Read(data []byte) error {

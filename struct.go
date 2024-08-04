@@ -11,15 +11,8 @@ type Struct struct {
 	Params map[uint32]any
 }
 
-func NewStruct(id int, data []byte) (*Struct, error) {
-	s := &Struct{
-		ID:     id,
-		Params: make(map[uint32]any),
-	}
-	if err := s.Read(data); err != nil {
-		return nil, fmt.Errorf("reading struct type: %w", err)
-	}
-	return s, nil
+func NewStruct(id int) *Struct {
+	return &Struct{ID: id, Params: make(map[uint32]any)}
 }
 
 func (s *Struct) Read(data []byte) error {

@@ -59,8 +59,8 @@ type ObjectModelData struct {
 	BlockingMask       uint8    `json:"blocking_mask"`
 }
 
-func NewObjectDefinition(id int, data []byte) (*ObjectDefinition, error) {
-	def := &ObjectDefinition{
+func NewObjectDefinition(id int) *ObjectDefinition {
+	return &ObjectDefinition{
 		ID:               id,
 		InteractType:     3,
 		BlocksProjectile: true,
@@ -74,10 +74,6 @@ func NewObjectDefinition(id int, data []byte) (*ObjectDefinition, error) {
 			ModelSizeZ:         128,
 		},
 	}
-	if err := def.Read(data); err != nil {
-		return nil, fmt.Errorf("reading object definition: %w", err)
-	}
-	return def, nil
 }
 
 func (def *ObjectDefinition) Read(data []byte) error {

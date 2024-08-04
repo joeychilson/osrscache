@@ -13,22 +13,15 @@ const (
 )
 
 type Sprite struct {
-	ID      uint32   `json:"id"`
+	ID      int      `json:"id"`
 	Width   uint16   `json:"width"`
 	Height  uint16   `json:"height"`
 	Palette []uint32 `json:"palette"`
 	Frames  []*Frame `json:"frames"`
 }
 
-func NewSprite(id uint32, data []byte) (*Sprite, error) {
-	sprite := &Sprite{
-		ID: id,
-	}
-	err := sprite.Read(data)
-	if err != nil {
-		return nil, fmt.Errorf("reading sprite: %w", err)
-	}
-	return sprite, nil
+func NewSprite(id int) *Sprite {
+	return &Sprite{ID: id}
 }
 
 func (s *Sprite) Read(data []byte) error {
