@@ -34,7 +34,7 @@ func (e *JSONExporter[K, V]) ExportAll(filename string) error {
 		return fmt.Errorf("marshaling definitions: %w", err)
 	}
 
-	fullPath := filepath.Join(e.outputDir, filename)
+	fullPath := filepath.Join(e.outputDir, filename+".json")
 	err = os.WriteFile(fullPath, data, 0644)
 	if err != nil {
 		return fmt.Errorf("writing file: %w", err)
