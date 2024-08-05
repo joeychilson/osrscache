@@ -7,7 +7,7 @@ import (
 	"math"
 )
 
-type NPCDefinition struct {
+type NPC struct {
 	ID               int              `json:"id"`
 	Category         uint16           `json:"category"`
 	Name             string           `json:"name"`
@@ -73,8 +73,8 @@ type NPCAnimationData struct {
 	CrawlingRotate180   uint16 `json:"crawling_rotate_180"`
 }
 
-func NewNPCDefinition(id int) *NPCDefinition {
-	return &NPCDefinition{
+func NewNPC(id int) *NPC {
+	return &NPC{
 		ID:               id,
 		Name:             "null",
 		Interactable:     true,
@@ -88,7 +88,7 @@ func NewNPCDefinition(id int) *NPCDefinition {
 	}
 }
 
-func (def *NPCDefinition) Read(data []byte) error {
+func (npc *NPC) Read(data []byte) error {
 	reader := NewReader(data)
 	for {
 		opcode, err := reader.ReadUint8()
@@ -107,72 +107,72 @@ func (def *NPCDefinition) Read(data []byte) error {
 			if err != nil {
 				return fmt.Errorf("reading length for models: %w", err)
 			}
-			def.ModelData.Models = make([]uint16, length)
+			npc.ModelData.Models = make([]uint16, length)
 			for i := 0; i < int(length); i++ {
-				def.ModelData.Models[i], err = reader.ReadUint16()
+				npc.ModelData.Models[i], err = reader.ReadUint16()
 				if err != nil {
 					return fmt.Errorf("reading model at index %d: %w", i, err)
 				}
 			}
 		case 2:
-			def.Name, err = reader.ReadString()
+			npc.Name, err = reader.ReadString()
 			if err != nil {
 				return fmt.Errorf("reading name: %w", err)
 			}
 		case 3:
-			def.Examine, err = reader.ReadString()
+			npc.Examine, err = reader.ReadString()
 			if err != nil {
 				return fmt.Errorf("reading examine: %w", err)
 			}
 		case 12:
-			def.Size, err = reader.ReadUint8()
+			npc.Size, err = reader.ReadUint8()
 			if err != nil {
 				return fmt.Errorf("reading size: %w", err)
 			}
 		case 13:
-			def.AnimationData.Idle, err = reader.ReadUint16()
+			npc.AnimationData.Idle, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading idle animation: %w", err)
 			}
 		case 14:
-			def.AnimationData.Walking, err = reader.ReadUint16()
+			npc.AnimationData.Walking, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading walking animation: %w", err)
 			}
 		case 15:
-			def.AnimationData.IdleRotateLeft, err = reader.ReadUint16()
+			npc.AnimationData.IdleRotateLeft, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading idle rotate left: %w", err)
 			}
 		case 16:
-			def.AnimationData.IdleRotateRight, err = reader.ReadUint16()
+			npc.AnimationData.IdleRotateRight, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading idle rotate right: %w", err)
 			}
 		case 17:
-			def.AnimationData.Walking, err = reader.ReadUint16()
+			npc.AnimationData.Walking, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading walking animation: %w", err)
 			}
-			def.AnimationData.WalkingRotate180, err = reader.ReadUint16()
+			npc.AnimationData.WalkingRotate180, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading walking animation: %w", err)
 			}
-			def.AnimationData.WalkingRotateLeft, err = reader.ReadUint16()
+			npc.AnimationData.WalkingRotateLeft, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading walking animation: %w", err)
 			}
-			def.AnimationData.WalkingRotateRight, err = reader.ReadUint16()
+			npc.AnimationData.WalkingRotateRight, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading walking animation: %w", err)
 			}
 		case 18:
-			def.Category, err = reader.ReadUint16()
+			npc.Category, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading category: %w", err)
 			}
 		case 30, 31, 32, 33, 34:
-			def.Actions[opcode-30], err = reader.ReadString()
+			npc.Actions[opcode-30], err = reader.ReadString()
 			if err != nil {
 				return fmt.Errorf("reading action: %w", err)
 			}
@@ -181,14 +181,14 @@ func (def *NPCDefinition) Read(data []byte) error {
 			if err != nil {
 				return fmt.Errorf("reading recolor length: %w", err)
 			}
-			def.ModelData.RecolorFrom = make([]uint16, length)
-			def.ModelData.RecolorTo = make([]uint16, length)
+			npc.ModelData.RecolorFrom = make([]uint16, length)
+			npc.ModelData.RecolorTo = make([]uint16, length)
 			for i := 0; i < int(length); i++ {
-				def.ModelData.RecolorFrom[i], err = reader.ReadUint16()
+				npc.ModelData.RecolorFrom[i], err = reader.ReadUint16()
 				if err != nil {
 					return fmt.Errorf("reading recolor from: %w", err)
 				}
-				def.ModelData.RecolorTo[i], err = reader.ReadUint16()
+				npc.ModelData.RecolorTo[i], err = reader.ReadUint16()
 				if err != nil {
 					return fmt.Errorf("reading recolor to: %w", err)
 				}
@@ -198,14 +198,14 @@ func (def *NPCDefinition) Read(data []byte) error {
 			if err != nil {
 				return fmt.Errorf("reading retexture length: %w", err)
 			}
-			def.ModelData.RetextureFrom = make([]uint16, length)
-			def.ModelData.RetextureTo = make([]uint16, length)
+			npc.ModelData.RetextureFrom = make([]uint16, length)
+			npc.ModelData.RetextureTo = make([]uint16, length)
 			for i := 0; i < int(length); i++ {
-				def.ModelData.RetextureFrom[i], err = reader.ReadUint16()
+				npc.ModelData.RetextureFrom[i], err = reader.ReadUint16()
 				if err != nil {
 					return fmt.Errorf("reading retexture from: %w", err)
 				}
-				def.ModelData.RetextureTo[i], err = reader.ReadUint16()
+				npc.ModelData.RetextureTo[i], err = reader.ReadUint16()
 				if err != nil {
 					return fmt.Errorf("reading retexture to: %w", err)
 				}
@@ -215,69 +215,69 @@ func (def *NPCDefinition) Read(data []byte) error {
 			if err != nil {
 				return fmt.Errorf("reading model length: %w", err)
 			}
-			def.ModelData.ChatHeadModels = make([]uint16, length)
-			for i := range def.ModelData.ChatHeadModels {
-				def.ModelData.ChatHeadModels[i], err = reader.ReadUint16()
+			npc.ModelData.ChatHeadModels = make([]uint16, length)
+			for i := range npc.ModelData.ChatHeadModels {
+				npc.ModelData.ChatHeadModels[i], err = reader.ReadUint16()
 				if err != nil {
 					return fmt.Errorf("reading chat head model: %w", err)
 				}
 			}
 		case 74:
-			def.Attack, err = reader.ReadUint16()
+			npc.Attack, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading attack: %w", err)
 			}
 		case 75:
-			def.Defense, err = reader.ReadUint16()
+			npc.Defense, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading defense: %w", err)
 			}
 		case 76:
-			def.Strength, err = reader.ReadUint16()
+			npc.Strength, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading strength: %w", err)
 			}
 		case 77:
-			def.Hitpoints, err = reader.ReadUint16()
+			npc.Hitpoints, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading range: %w", err)
 			}
 		case 78:
-			def.Ranged, err = reader.ReadUint16()
+			npc.Ranged, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading ranged: %w", err)
 			}
 		case 79:
-			def.Magic, err = reader.ReadUint16()
+			npc.Magic, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading magic: %w", err)
 			}
 		case 93:
-			def.VisibleOnMinimap = false
+			npc.VisibleOnMinimap = false
 		case 95:
-			def.CombatLevel, err = reader.ReadUint16()
+			npc.CombatLevel, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading combat level: %w", err)
 			}
 		case 97:
-			def.ModelData.ScaleWidth, err = reader.ReadUint16()
+			npc.ModelData.ScaleWidth, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading scale width: %w", err)
 			}
 		case 98:
-			def.ModelData.ScaleHeight, err = reader.ReadUint16()
+			npc.ModelData.ScaleHeight, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading scale height: %w", err)
 			}
 		case 99:
-			def.Visible = true
+			npc.Visible = true
 		case 100:
-			def.ModelData.Ambient, err = reader.ReadUint8()
+			npc.ModelData.Ambient, err = reader.ReadUint8()
 			if err != nil {
 				return fmt.Errorf("reading ambient: %w", err)
 			}
 		case 101:
-			def.ModelData.Contrast, err = reader.ReadUint8()
+			npc.ModelData.Contrast, err = reader.ReadUint8()
 			if err != nil {
 				return fmt.Errorf("reading contrast: %w", err)
 			}
@@ -286,12 +286,12 @@ func (def *NPCDefinition) Read(data []byte) error {
 			if err != nil {
 				return fmt.Errorf("reading head icon bitfield: %w", err)
 			}
-			def.ModelData.HeadIconArchive = []int16{}
-			def.ModelData.HeadIconSpriteIndex = []int16{}
+			npc.ModelData.HeadIconArchive = []int16{}
+			npc.ModelData.HeadIconSpriteIndex = []int16{}
 			for bits := bitfield; bits != 0; bits >>= 1 {
 				if bits&1 == 0 {
-					def.ModelData.HeadIconArchive = append(def.ModelData.HeadIconArchive, -1)
-					def.ModelData.HeadIconSpriteIndex = append(def.ModelData.HeadIconSpriteIndex, -1)
+					npc.ModelData.HeadIconArchive = append(npc.ModelData.HeadIconArchive, -1)
+					npc.ModelData.HeadIconSpriteIndex = append(npc.ModelData.HeadIconSpriteIndex, -1)
 				} else {
 					archive, err := reader.ReadBigSmart2()
 					if err != nil {
@@ -301,110 +301,110 @@ func (def *NPCDefinition) Read(data []byte) error {
 					if err != nil {
 						return fmt.Errorf("reading head icon sprite index: %w", err)
 					}
-					def.ModelData.HeadIconArchive = append(def.ModelData.HeadIconArchive, int16(archive))
-					def.ModelData.HeadIconSpriteIndex = append(def.ModelData.HeadIconSpriteIndex, int16(spriteIndex))
+					npc.ModelData.HeadIconArchive = append(npc.ModelData.HeadIconArchive, int16(archive))
+					npc.ModelData.HeadIconSpriteIndex = append(npc.ModelData.HeadIconSpriteIndex, int16(spriteIndex))
 				}
 			}
 		case 103:
-			def.ModelData.RotateSpeed, err = reader.ReadUint16()
+			npc.ModelData.RotateSpeed, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading rotate speed: %w", err)
 			}
 		case 106:
-			def.VarbitID, err = reader.ReadUint16()
+			npc.VarbitID, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading varbit id (106): %w", err)
 			}
-			if def.VarbitID == math.MaxUint16 {
-				def.VarbitID = 0
+			if npc.VarbitID == math.MaxUint16 {
+				npc.VarbitID = 0
 			}
-			def.VarpIndex, err = reader.ReadUint16()
+			npc.VarpIndex, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading varp index (106): %w", err)
 			}
-			if def.VarpIndex == math.MaxUint16 {
-				def.VarpIndex = 0
+			if npc.VarpIndex == math.MaxUint16 {
+				npc.VarpIndex = 0
 			}
 			length, err := reader.ReadUint8()
 			if err != nil {
 				return fmt.Errorf("reading config length (106): %w", err)
 			}
-			def.Configs = make([]uint16, int(length)+2)
+			npc.Configs = make([]uint16, int(length)+2)
 			for i := 0; i <= int(length); i++ {
-				def.Configs[i], err = reader.ReadUint16()
+				npc.Configs[i], err = reader.ReadUint16()
 				if err != nil {
 					return fmt.Errorf("reading config (106): %w", err)
 				}
-				if def.Configs[i] == math.MaxUint16 {
-					def.Configs[i] = 0
+				if npc.Configs[i] == math.MaxUint16 {
+					npc.Configs[i] = 0
 				}
 			}
-			def.Configs[length+1] = 0
+			npc.Configs[length+1] = 0
 		case 107:
-			def.Interactable = false
+			npc.Interactable = false
 		case 109:
-			def.ModelData.RotateFlag = true
+			npc.ModelData.RotateFlag = true
 		case 111:
-			def.Follower = true
-			def.LowPriority = true
+			npc.Follower = true
+			npc.LowPriority = true
 		case 114:
-			def.AnimationData.Running, err = reader.ReadUint16()
+			npc.AnimationData.Running, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading running animation: %w", err)
 			}
 		case 115:
-			def.AnimationData.Running, err = reader.ReadUint16()
+			npc.AnimationData.Running, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading running animation: %w", err)
 			}
-			def.AnimationData.RunningRotate180, err = reader.ReadUint16()
+			npc.AnimationData.RunningRotate180, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading running animation: %w", err)
 			}
-			def.AnimationData.RunningRotateLeft, err = reader.ReadUint16()
+			npc.AnimationData.RunningRotateLeft, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading running animation: %w", err)
 			}
-			def.AnimationData.RunningRotateRight, err = reader.ReadUint16()
+			npc.AnimationData.RunningRotateRight, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading running animation: %w", err)
 			}
 		case 116:
-			def.AnimationData.Crawling, err = reader.ReadUint16()
+			npc.AnimationData.Crawling, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading crawling animation: %w", err)
 			}
 		case 117:
-			def.AnimationData.Crawling, err = reader.ReadUint16()
+			npc.AnimationData.Crawling, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading crawling animation: %w", err)
 			}
-			def.AnimationData.CrawlingRotate180, err = reader.ReadUint16()
+			npc.AnimationData.CrawlingRotate180, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading crawling animation: %w", err)
 			}
-			def.AnimationData.CrawlingRotateLeft, err = reader.ReadUint16()
+			npc.AnimationData.CrawlingRotateLeft, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading crawling animation: %w", err)
 			}
-			def.AnimationData.CrawlingRotateRight, err = reader.ReadUint16()
+			npc.AnimationData.CrawlingRotateRight, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading crawling animation: %w", err)
 			}
 		case 118:
-			def.VarbitID, err = reader.ReadUint16()
+			npc.VarbitID, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading varbit id (118): %w", err)
 			}
-			if def.VarbitID == math.MaxUint16 {
-				def.VarbitID = 0
+			if npc.VarbitID == math.MaxUint16 {
+				npc.VarbitID = 0
 			}
-			def.VarpIndex, err = reader.ReadUint16()
+			npc.VarpIndex, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading varp index (118): %w", err)
 			}
-			if def.VarpIndex == math.MaxUint16 {
-				def.VarpIndex = 0
+			if npc.VarpIndex == math.MaxUint16 {
+				npc.VarpIndex = 0
 			}
 			varValue, err := reader.ReadUint16()
 			if err != nil {
@@ -417,20 +417,20 @@ func (def *NPCDefinition) Read(data []byte) error {
 			if err != nil {
 				return fmt.Errorf("reading config length (118): %w", err)
 			}
-			def.Configs = make([]uint16, int(length)+2)
+			npc.Configs = make([]uint16, int(length)+2)
 			for i := 0; i <= int(length); i++ {
-				def.Configs[i], err = reader.ReadUint16()
+				npc.Configs[i], err = reader.ReadUint16()
 				if err != nil {
 					return fmt.Errorf("reading config at index %d (118): %w", i, err)
 				}
 			}
-			def.Configs[length+1] = varValue
+			npc.Configs[length+1] = varValue
 		case 122:
-			def.Follower = true
+			npc.Follower = true
 		case 123:
-			def.LowPriority = true
+			npc.LowPriority = true
 		case 124:
-			def.Height, err = reader.ReadUint16()
+			npc.Height, err = reader.ReadUint16()
 			if err != nil {
 				return fmt.Errorf("reading height: %w", err)
 			}
@@ -439,7 +439,7 @@ func (def *NPCDefinition) Read(data []byte) error {
 			if err != nil {
 				return fmt.Errorf("reading param length: %w", err)
 			}
-			def.Params = make(map[uint32]any, length)
+			npc.Params = make(map[uint32]any, length)
 			for i := 0; i < int(length); i++ {
 				isString, err := reader.ReadUint8()
 				if err != nil {
@@ -465,7 +465,7 @@ func (def *NPCDefinition) Read(data []byte) error {
 					}
 					value = intValue
 				}
-				def.Params[key] = value
+				npc.Params[key] = value
 			}
 		}
 	}

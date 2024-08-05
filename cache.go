@@ -56,77 +56,77 @@ func (c *Cache) Files(archiveID int, groupID int) (map[int][]byte, error) {
 	return files, nil
 }
 
-func (c *Cache) ItemDefinitions() (map[int]*ItemDefinition, error) {
+func (c *Cache) Items() (map[int]*Item, error) {
 	files, err := c.Files(2, 10)
 	if err != nil {
-		return nil, fmt.Errorf("getting item definition files: %w", err)
+		return nil, fmt.Errorf("getting item files: %w", err)
 	}
 
-	definitions := make(map[int]*ItemDefinition, len(files))
+	items := make(map[int]*Item, len(files))
 	for id, data := range files {
-		def := NewItemDefinition(id)
-		if err := def.Read(data); err != nil {
-			return nil, fmt.Errorf("reading item definition: %w", err)
+		item := NewItem(id)
+		if err := item.Read(data); err != nil {
+			return nil, fmt.Errorf("reading item: %w", err)
 		}
-		definitions[id] = def
+		items[id] = item
 	}
-	return definitions, nil
+	return items, nil
 }
 
-func (c *Cache) ExportItemDefinitions(outputDir string, mode JSONExportMode) error {
-	items, err := c.ItemDefinitions()
+func (c *Cache) ExportItems(outputDir string, mode JSONExportMode) error {
+	items, err := c.Items()
 	if err != nil {
-		return fmt.Errorf("getting item definitions: %w", err)
+		return fmt.Errorf("getting items: %w", err)
 	}
 	return NewJSONExporter(items, outputDir).ExportToJSON(mode, "item")
 }
 
-func (c *Cache) NPCDefinitions() (map[int]*NPCDefinition, error) {
+func (c *Cache) NPCs() (map[int]*NPC, error) {
 	files, err := c.Files(2, 9)
 	if err != nil {
-		return nil, fmt.Errorf("getting npc definition files: %w", err)
+		return nil, fmt.Errorf("getting npc files: %w", err)
 	}
 
-	definitions := make(map[int]*NPCDefinition, len(files))
+	npcs := make(map[int]*NPC, len(files))
 	for id, data := range files {
-		def := NewNPCDefinition(id)
-		if err := def.Read(data); err != nil {
-			return nil, fmt.Errorf("reading npc definition: %w", err)
+		npc := NewNPC(id)
+		if err := npc.Read(data); err != nil {
+			return nil, fmt.Errorf("reading npc: %w", err)
 		}
-		definitions[id] = def
+		npcs[id] = npc
 	}
-	return definitions, nil
+	return npcs, nil
 }
 
-func (c *Cache) ExportNPCDefinitions(outputDir string, mode JSONExportMode) error {
-	npcs, err := c.NPCDefinitions()
+func (c *Cache) ExportNPCs(outputDir string, mode JSONExportMode) error {
+	npcs, err := c.NPCs()
 	if err != nil {
-		return fmt.Errorf("getting npc definitions: %w", err)
+		return fmt.Errorf("getting npcs: %w", err)
 	}
 	return NewJSONExporter(npcs, outputDir).ExportToJSON(mode, "npc")
 }
 
-func (c *Cache) ObjectDefinitions() (map[int]*ObjectDefinition, error) {
+func (c *Cache) Objects() (map[int]*Object, error) {
 	files, err := c.Files(2, 6)
 	if err != nil {
-		return nil, fmt.Errorf("getting object definition files: %w", err)
+		return nil, fmt.Errorf("getting object files: %w", err)
 	}
 
-	definitions := make(map[int]*ObjectDefinition, len(files))
+	objs := make(map[int]*Object, len(files))
 	for id, data := range files {
-		def := NewObjectDefinition(id)
-		if err := def.Read(data); err != nil {
-			return nil, fmt.Errorf("reading object definition: %w", err)
+		obj := NewObject(id)
+		if err := obj.Read(data); err != nil {
+			return nil, fmt.Errorf("reading object: %w", err)
 		}
-		definitions[id] = def
+		objs[id] = obj
 	}
-	return definitions, nil
+	return objs, nil
 }
 
-func (c *Cache) ExportObjectDefinitions(outputDir string, mode JSONExportMode) error {
-	npcs, err := c.ObjectDefinitions()
+func (c *Cache) ExportObjects(outputDir string, mode JSONExportMode) error {
+	npcs, err := c.Objects()
 	if err != nil {
-		return fmt.Errorf("getting object definitions: %w", err)
+		return fmt.Errorf("getting objects: %w", err)
 	}
 	return NewJSONExporter(npcs, outputDir).ExportToJSON(mode, "object")
 }
