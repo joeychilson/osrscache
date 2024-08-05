@@ -181,13 +181,13 @@ func (c *Cache) ExportStructs(outputDir string, mode JSONExportMode) error {
 	return NewJSONExporter(structs, outputDir).ExportToJSON(mode, "struct")
 }
 
-func (c *Cache) Sprites() (map[uint32]*Sprite, error) {
+func (c *Cache) Sprites() (map[int]*Sprite, error) {
 	groups, err := c.Store.GroupList(8)
 	if err != nil {
 		return nil, fmt.Errorf("getting index: %w", err)
 	}
 
-	sprites := make(map[uint32]*Sprite, len(groups))
+	sprites := make(map[int]*Sprite, len(groups))
 	for group := range groups {
 		archiveData, err := c.Store.Read(8, group)
 		if err != nil {
@@ -203,7 +203,7 @@ func (c *Cache) Sprites() (map[uint32]*Sprite, error) {
 		if err := sprite.Read(decompressedData); err != nil {
 			return nil, fmt.Errorf("reading sprite: %w", err)
 		}
-		sprites[uint32(group)] = sprite
+		sprites[group] = sprite
 	}
 	return sprites, nil
 }
@@ -214,4 +214,21 @@ func (c *Cache) ExportSprites(outputDir string) error {
 		return fmt.Errorf("getting sprites: %w", err)
 	}
 	return NewImageExporter(sprites, outputDir).ExportToImage("sprite")
+}
+
+func (c *Cache) Textures() (map[int]*Texture, error) {
+	files, err := c.Files(9, 0)
+	if err != nil {
+		return nil, fmt.Errorf("getting object definition files: %w", err)
+	}
+
+	textures := make(map[int]*Texture, len(files))
+	for id, data := range files {
+		texture := NewTexture(id)
+		if err := texture.Read(data); err != nil {
+			return nil, fmt.Errorf("reading texture: %w", err)
+		}
+		textures[id] = texture
+	}
+	return textures, nil
 }
