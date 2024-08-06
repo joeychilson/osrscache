@@ -56,6 +56,24 @@ func (c *Cache) Files(archiveID int, groupID int) (map[int][]byte, error) {
 	return files, nil
 }
 
+func (c *Cache) Item(id int) (*Item, error) {
+	files, err := c.Files(2, 10)
+	if err != nil {
+		return nil, fmt.Errorf("getting item files: %w", err)
+	}
+
+	data, ok := files[id]
+	if !ok {
+		return nil, fmt.Errorf("item %d not found", id)
+	}
+
+	item := NewItem(id)
+	if err := item.Read(data); err != nil {
+		return nil, fmt.Errorf("reading item: %w", err)
+	}
+	return item, nil
+}
+
 func (c *Cache) Items() (map[int]*Item, error) {
 	files, err := c.Files(2, 10)
 	if err != nil {
@@ -79,6 +97,24 @@ func (c *Cache) ExportItems(outputDir string, mode JSONExportMode) error {
 		return fmt.Errorf("getting items: %w", err)
 	}
 	return NewJSONExporter(items, outputDir).ExportToJSON(mode, "item")
+}
+
+func (c *Cache) NPC(id int) (*NPC, error) {
+	files, err := c.Files(2, 9)
+	if err != nil {
+		return nil, fmt.Errorf("getting npc files: %w", err)
+	}
+
+	data, ok := files[id]
+	if !ok {
+		return nil, fmt.Errorf("npc %d not found", id)
+	}
+
+	npc := NewNPC(id)
+	if err := npc.Read(data); err != nil {
+		return nil, fmt.Errorf("reading npc: %w", err)
+	}
+	return npc, nil
 }
 
 func (c *Cache) NPCs() (map[int]*NPC, error) {
@@ -106,6 +142,24 @@ func (c *Cache) ExportNPCs(outputDir string, mode JSONExportMode) error {
 	return NewJSONExporter(npcs, outputDir).ExportToJSON(mode, "npc")
 }
 
+func (c *Cache) Object(id int) (*Object, error) {
+	files, err := c.Files(2, 6)
+	if err != nil {
+		return nil, fmt.Errorf("getting object files: %w", err)
+	}
+
+	data, ok := files[id]
+	if !ok {
+		return nil, fmt.Errorf("object %d not found", id)
+	}
+
+	obj := NewObject(id)
+	if err := obj.Read(data); err != nil {
+		return nil, fmt.Errorf("reading object: %w", err)
+	}
+	return obj, nil
+}
+
 func (c *Cache) Objects() (map[int]*Object, error) {
 	files, err := c.Files(2, 6)
 	if err != nil {
@@ -129,6 +183,24 @@ func (c *Cache) ExportObjects(outputDir string, mode JSONExportMode) error {
 		return fmt.Errorf("getting objects: %w", err)
 	}
 	return NewJSONExporter(npcs, outputDir).ExportToJSON(mode, "object")
+}
+
+func (c *Cache) Enum(id int) (*Enum, error) {
+	files, err := c.Files(2, 8)
+	if err != nil {
+		return nil, fmt.Errorf("getting enum files: %w", err)
+	}
+
+	data, ok := files[id]
+	if !ok {
+		return nil, fmt.Errorf("enum %d not found", id)
+	}
+
+	enum := NewEnum(id)
+	if err := enum.Read(data); err != nil {
+		return nil, fmt.Errorf("reading enum: %w", err)
+	}
+	return enum, nil
 }
 
 func (c *Cache) Enums() (map[int]*Enum, error) {
@@ -156,6 +228,24 @@ func (c *Cache) ExportEnums(outputDir string, mode JSONExportMode) error {
 	return NewJSONExporter(enums, outputDir).ExportToJSON(mode, "enum")
 }
 
+func (c *Cache) Struct(id int) (*Struct, error) {
+	files, err := c.Files(2, 34)
+	if err != nil {
+		return nil, fmt.Errorf("getting struct files: %w", err)
+	}
+
+	data, ok := files[id]
+	if !ok {
+		return nil, fmt.Errorf("struct %d not found", id)
+	}
+
+	str := NewStruct(id)
+	if err := str.Read(data); err != nil {
+		return nil, fmt.Errorf("reading struct: %w", err)
+	}
+	return str, nil
+}
+
 func (c *Cache) Structs() (map[int]*Struct, error) {
 	files, err := c.Files(2, 34)
 	if err != nil {
@@ -179,6 +269,24 @@ func (c *Cache) ExportStructs(outputDir string, mode JSONExportMode) error {
 		return fmt.Errorf("getting structs: %w", err)
 	}
 	return NewJSONExporter(structs, outputDir).ExportToJSON(mode, "struct")
+}
+
+func (c *Cache) Sprite(id int) (*Sprite, error) {
+	archiveData, err := c.Store.Read(8, id)
+	if err != nil {
+		return nil, fmt.Errorf("reading sprite archive: %w", err)
+	}
+
+	decompressedData, err := DecompressData(archiveData)
+	if err != nil {
+		return nil, fmt.Errorf("decompressing sprite archive: %w", err)
+	}
+
+	sprite := NewSprite(id)
+	if err := sprite.Read(decompressedData); err != nil {
+		return nil, fmt.Errorf("reading sprite: %w", err)
+	}
+	return sprite, nil
 }
 
 func (c *Cache) Sprites() (map[int]*Sprite, error) {
@@ -216,6 +324,24 @@ func (c *Cache) ExportSprites(outputDir string) error {
 	return NewImageExporter(sprites, outputDir).ExportToImage("sprite")
 }
 
+func (c *Cache) Texture(id int) (*Texture, error) {
+	files, err := c.Files(9, 0)
+	if err != nil {
+		return nil, fmt.Errorf("getting texture files: %w", err)
+	}
+
+	data, ok := files[id]
+	if !ok {
+		return nil, fmt.Errorf("texture %d not found", id)
+	}
+
+	texture := NewTexture(id)
+	if err := texture.Read(data); err != nil {
+		return nil, fmt.Errorf("reading texture: %w", err)
+	}
+	return texture, nil
+}
+
 func (c *Cache) Textures() (map[int]*Texture, error) {
 	files, err := c.Files(9, 0)
 	if err != nil {
@@ -231,4 +357,12 @@ func (c *Cache) Textures() (map[int]*Texture, error) {
 		textures[id] = texture
 	}
 	return textures, nil
+}
+
+func (c *Cache) ExportTextures(outputDir string, mode JSONExportMode) error {
+	textures, err := c.Textures()
+	if err != nil {
+		return fmt.Errorf("getting textures: %w", err)
+	}
+	return NewJSONExporter(textures, outputDir).ExportToJSON(mode, "texture")
 }
