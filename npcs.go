@@ -8,7 +8,7 @@ import (
 )
 
 type NPC struct {
-	ID               int              `json:"id"`
+	ID               uint16           `json:"id"`
 	Category         uint16           `json:"category"`
 	Name             string           `json:"name"`
 	Examine          string           `json:"examine"`
@@ -73,7 +73,7 @@ type NPCAnimationData struct {
 	CrawlingRotate180   uint16 `json:"crawling_rotate_180"`
 }
 
-func NewNPC(id int) *NPC {
+func NewNPC(id uint16) *NPC {
 	return &NPC{
 		ID:               id,
 		Name:             "null",

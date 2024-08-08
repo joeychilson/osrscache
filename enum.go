@@ -7,14 +7,14 @@ import (
 )
 
 type Enum struct {
-	ID           int
+	ID           uint16
 	KeyType      byte
 	ValueType    byte
 	DefaultValue any
 	Values       map[int32]any
 }
 
-func NewEnum(id int) *Enum {
+func NewEnum(id uint16) *Enum {
 	return &Enum{
 		ID:           id,
 		DefaultValue: nil,

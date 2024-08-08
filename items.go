@@ -7,7 +7,7 @@ import (
 )
 
 type Item struct {
-	ID                       int                `json:"id"`
+	ID                       uint16             `json:"id"`
 	Category                 uint16             `json:"category"`
 	Name                     string             `json:"name"`
 	Examine                  string             `json:"examine"`
@@ -65,7 +65,7 @@ type CharacterModelData struct {
 	ChatHeadModelSecondary uint16 `json:"chat_head_model_secondary"`
 }
 
-func NewItem(id int) *Item {
+func NewItem(id uint16) *Item {
 	return &Item{
 		ID:               id,
 		Name:             "null",

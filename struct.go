@@ -7,11 +7,11 @@ import (
 )
 
 type Struct struct {
-	ID     int
+	ID     uint16
 	Params map[uint32]any
 }
 
-func NewStruct(id int) *Struct {
+func NewStruct(id uint16) *Struct {
 	return &Struct{ID: id, Params: make(map[uint32]any)}
 }
 

@@ -13,14 +13,14 @@ const (
 )
 
 type Sprite struct {
-	ID      int      `json:"id"`
+	ID      uint16   `json:"id"`
 	Width   uint16   `json:"width"`
 	Height  uint16   `json:"height"`
 	Palette []uint32 `json:"palette"`
 	Frames  []*Frame `json:"frames"`
 }
 
-func NewSprite(id int) *Sprite {
+func NewSprite(id uint16) *Sprite {
 	return &Sprite{ID: id}
 }
 
@@ -105,7 +105,7 @@ func (s *Sprite) Read(data []byte) error {
 
 	s.Frames = make([]*Frame, frameLength)
 	for i := range s.Frames {
-		frame, err := NewFrame(i, xOffsets[i], yOffsets[i], maxWidths[i], maxHeights[i], data)
+		frame, err := NewFrame(uint16(i), xOffsets[i], yOffsets[i], maxWidths[i], maxHeights[i], data)
 		if err != nil {
 			return fmt.Errorf("creating frame: %w", err)
 		}
@@ -150,7 +150,7 @@ func (s *Sprite) Image() *image.RGBA {
 }
 
 type Frame struct {
-	ID        int    `json:"id"`
+	ID        uint16 `json:"id"`
 	OffsetX   uint16 `json:"offset_x"`
 	OffsetY   uint16 `json:"offset_y"`
 	MaxWidth  uint16 `json:"max_width"`
@@ -159,7 +159,7 @@ type Frame struct {
 	Alpha     []byte `json:"alpha"`
 }
 
-func NewFrame(id int, offsetX uint16, offsetY uint16, maxWidth uint16, maxHeight uint16, data []byte) (*Frame, error) {
+func NewFrame(id uint16, offsetX uint16, offsetY uint16, maxWidth uint16, maxHeight uint16, data []byte) (*Frame, error) {
 	frame := &Frame{
 		ID:        id,
 		OffsetX:   offsetX,

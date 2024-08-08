@@ -8,7 +8,7 @@ import (
 )
 
 type Object struct {
-	ID                         int             `json:"id"`
+	ID                         uint16          `json:"id"`
 	Category                   uint16          `json:"category"`
 	Name                       string          `json:"name"`
 	ConfigID                   uint16          `json:"config_id"`
@@ -59,7 +59,7 @@ type ObjectModelData struct {
 	BlockingMask       uint8    `json:"blocking_mask"`
 }
 
-func NewObject(id int) *Object {
+func NewObject(id uint16) *Object {
 	return &Object{
 		ID:               id,
 		InteractType:     3,

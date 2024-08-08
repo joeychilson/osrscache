@@ -82,8 +82,8 @@ func ReadIndex(data []byte) (*Index, error) {
 		Groups:                   make([]*Group, size),
 	}
 
-	prevGroupID := 0
-	for i := 0; i < size; i++ {
+	prevGroupID := uint32(0)
+	for i := 0; i < int(size); i++ {
 		delta, err := readSize(reader, protocol)
 		if err != nil {
 			return nil, fmt.Errorf("reading delta: %w", err)
@@ -155,7 +155,7 @@ func ReadIndex(data []byte) (*Index, error) {
 		index.Groups[i].Version = version
 	}
 
-	groupSizes := make([]int, size)
+	groupSizes := make([]uint32, size)
 	for i := range groupSizes {
 		groupSize, err := readSize(reader, protocol)
 		if err != nil {
@@ -167,8 +167,8 @@ func ReadIndex(data []byte) (*Index, error) {
 	for i, group := range index.Groups {
 		groupSize := groupSizes[i]
 
-		prevFileID := 0
-		for j := 0; j < groupSize; j++ {
+		prevFileID := uint32(0)
+		for j := 0; j < int(groupSize); j++ {
 			delta, err := readSize(reader, protocol)
 			if err != nil {
 				return nil, fmt.Errorf("reading file id delta: %w", err)
@@ -202,19 +202,19 @@ func (i *Index) Group(id uint32) (*Group, error) {
 	return nil, fmt.Errorf("group %d not found", id)
 }
 
-func readSize(reader *Reader, protocol Protocol) (int, error) {
+func readSize(reader *Reader, protocol Protocol) (uint32, error) {
 	if protocol >= ProtocolSmart {
 		size, err := reader.ReadSmartUint()
 		if err != nil {
 			return 0, fmt.Errorf("reading size: %w", err)
 		}
-		return int(size), nil
+		return uint32(size), nil
 	} else {
 		size, err := reader.ReadUint16()
 		if err != nil {
 			return 0, fmt.Errorf("reading size: %w", err)
 		}
-		return int(size), nil
+		return uint32(size), nil
 	}
 }
 
@@ -231,11 +231,11 @@ type Group struct {
 }
 
 type File struct {
-	ID       int
+	ID       uint32
 	NameHash int32
 }
 
-func (g *Group) Unpack(data []byte) (map[int][]byte, error) {
+func (g *Group) Unpack(data []byte) (map[uint32][]byte, error) {
 	if len(data) == 0 {
 		return nil, fmt.Errorf("data must be readable")
 	}
@@ -245,7 +245,7 @@ func (g *Group) Unpack(data []byte) (map[int][]byte, error) {
 	}
 
 	if len(g.Files) == 1 {
-		return map[int][]byte{g.Files[0].ID: data}, nil
+		return map[uint32][]byte{g.Files[0].ID: data}, nil
 	}
 
 	stripes := int(data[len(data)-1])
@@ -269,7 +269,7 @@ func (g *Group) Unpack(data []byte) (map[int][]byte, error) {
 		}
 	}
 
-	files := make(map[int][]byte, len(g.Files))
+	files := make(map[uint32][]byte, len(g.Files))
 	for i, file := range g.Files {
 		files[file.ID] = make([]byte, 0, lens[i])
 	}

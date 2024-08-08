@@ -25,7 +25,7 @@ func main() {
 		log.Fatalf("opening store: %v", err)
 	}
 
-	cache := osrscache.NewCache(store)
+	cache := osrscache.New(store)
 
 	items, err := cache.Items()
 	if err != nil {

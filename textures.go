@@ -3,7 +3,7 @@ package osrscache
 import "fmt"
 
 type Texture struct {
-	ID                 int
+	ID                 uint16
 	SpriteIDs          []uint16
 	Opaque             bool    // Not 100% sure this is Opaque
 	Colors             []int32 // Not 100% sure this is Colors
@@ -14,7 +14,7 @@ type Texture struct {
 	AnimationFrames    []uint8 // Not 100% sure this is AnimationFrames
 }
 
-func NewTexture(id int) *Texture {
+func NewTexture(id uint16) *Texture {
 	return &Texture{ID: id}
 }
 
