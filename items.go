@@ -13,7 +13,6 @@ type Item struct {
 	Examine                  string             `json:"examine"`
 	MembersOnly              bool               `json:"members_only"`
 	Stackable                bool               `json:"stackable"`
-	Tradeable                bool               `json:"tradeable"`
 	Exchangeable             bool               `json:"exchangeable"`
 	Value                    int32              `json:"value"`
 	Weight                   int16              `json:"weight"`
