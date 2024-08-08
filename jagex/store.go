@@ -60,17 +60,17 @@ func (s *JagexStore) Close() error {
 	return nil
 }
 
-func (s *JagexStore) ArchiveList() ([]int, error) {
+func (s *JagexStore) ArchiveList() ([]uint8, error) {
 	if s.indexFiles == nil {
 		return nil, fmt.Errorf("no index files loaded")
 	}
 
-	var archives []int
+	var archives []uint8
 	for id, file := range s.indexFiles {
 		if file == nil {
 			continue
 		}
-		archives = append(archives, id)
+		archives = append(archives, uint8(id))
 	}
 
 	if len(archives) == 0 {
@@ -79,18 +79,11 @@ func (s *JagexStore) ArchiveList() ([]int, error) {
 	return archives, nil
 }
 
-func (s *JagexStore) ArchiveExists(archiveID int) bool {
-	if archiveID < 0 || archiveID >= MaxIndexFiles {
-		return false
-	}
+func (s *JagexStore) ArchiveExists(archiveID uint8) bool {
 	return s.indexFiles[archiveID] != nil
 }
 
-func (s *JagexStore) GroupList(archiveID int) ([]int, error) {
-	if archiveID < 0 || archiveID >= MaxIndexFiles {
-		return nil, fmt.Errorf("invalid archive id: %d", archiveID)
-	}
-
+func (s *JagexStore) GroupList(archiveID uint8) ([]uint32, error) {
 	indexFile := s.indexFiles[archiveID]
 	if indexFile == nil {
 		return nil, fmt.Errorf("archive %d does not exist", archiveID)
@@ -106,7 +99,7 @@ func (s *JagexStore) GroupList(archiveID int) ([]int, error) {
 		return nil, fmt.Errorf("invalid index file size: %d", fileSize)
 	}
 
-	groups := make([]int, 0, fileSize/IndexEntrySize)
+	groups := make([]uint32, 0, fileSize/IndexEntrySize)
 	buffer := make([]byte, IndexEntrySize*1024)
 
 	for position := int64(0); position < fileSize; position += int64(len(buffer)) {
@@ -119,7 +112,7 @@ func (s *JagexStore) GroupList(archiveID int) ([]int, error) {
 			group := int(position)/IndexEntrySize + i/IndexEntrySize
 			block := int(buffer[i+3])<<16 | int(buffer[i+4])<<8 | int(buffer[i+5])
 			if block != 0 {
-				groups = append(groups, group)
+				groups = append(groups, uint32(group))
 			}
 		}
 
@@ -130,11 +123,7 @@ func (s *JagexStore) GroupList(archiveID int) ([]int, error) {
 	return groups, nil
 }
 
-func (s *JagexStore) GroupExists(archiveID int, groupID int) bool {
-	if archiveID < 0 || archiveID >= MaxIndexFiles || groupID < 0 {
-		return false
-	}
-
+func (s *JagexStore) GroupExists(archiveID uint8, groupID uint32) bool {
 	entry, err := s.IndexEntry(archiveID, groupID)
 	if err != nil {
 		return false
@@ -142,25 +131,17 @@ func (s *JagexStore) GroupExists(archiveID int, groupID int) bool {
 	return entry.Block != 0
 }
 
-func (s *JagexStore) Read(archive int, group int) ([]byte, error) {
-	if archive < 0 || archive >= MaxIndexFiles {
-		return nil, fmt.Errorf("invalid archive id: %d", archive)
-	}
-
-	if group < 0 {
-		return nil, fmt.Errorf("invalid group id: %d", group)
-	}
-
-	entry, err := s.IndexEntry(archive, group)
+func (s *JagexStore) Read(archiveID uint8, groupID uint32) ([]byte, error) {
+	entry, err := s.IndexEntry(archiveID, groupID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read index entry: %w", err)
 	}
 
 	if entry.Block == 0 {
-		return nil, fmt.Errorf("group %d does not exist in archive %d", group, archive)
+		return nil, fmt.Errorf("group %d does not exist in archive %d", groupID, archiveID)
 	}
 
-	extended := group >= 65536
+	extended := groupID >= 65536
 
 	var (
 		blockHeaderSize int
@@ -221,16 +202,16 @@ func (s *JagexStore) Read(archive int, group int) ([]byte, error) {
 			actualArchive = int(blockBuffer[7])
 		}
 
-		if actualGroup != group {
-			return nil, fmt.Errorf("expected group %d, but got %d", group, actualGroup)
+		if actualGroup != int(groupID) {
+			return nil, fmt.Errorf("expected group %d, but got %d", groupID, actualGroup)
 		}
 
 		if actualNum != blockNum {
 			return nil, fmt.Errorf("expected block number %d, but got %d", blockNum, actualNum)
 		}
 
-		if actualArchive != archive {
-			return nil, fmt.Errorf("expected archive %d, but got %d", archive, actualArchive)
+		if actualArchive != int(archiveID) {
+			return nil, fmt.Errorf("expected archive %d, but got %d", archiveID, actualArchive)
 		}
 
 		dataSize := int(entry.Size) - bytesRead
@@ -255,14 +236,10 @@ type IndexEntry struct {
 	Block uint32
 }
 
-func (s *JagexStore) IndexEntry(archive int, group int) (*IndexEntry, error) {
-	if archive < 0 || archive >= MaxIndexFiles {
-		return nil, fmt.Errorf("invalid archive id: %d", archive)
-	}
-
-	indexFile := s.indexFiles[archive]
+func (s *JagexStore) IndexEntry(archiveID uint8, groupID uint32) (*IndexEntry, error) {
+	indexFile := s.indexFiles[int(archiveID)]
 	if indexFile == nil {
-		return nil, fmt.Errorf("archive %d does not exist", archive)
+		return nil, fmt.Errorf("archive %d does not exist", archiveID)
 	}
 
 	stat, err := indexFile.Stat()
@@ -276,7 +253,7 @@ func (s *JagexStore) IndexEntry(archive int, group int) (*IndexEntry, error) {
 	}
 
 	buffer := make([]byte, IndexEntrySize)
-	position := int64(group) * IndexEntrySize
+	position := int64(groupID) * IndexEntrySize
 
 	n, err := indexFile.ReadAt(buffer, position)
 	if err != nil {

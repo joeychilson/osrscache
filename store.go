@@ -5,9 +5,9 @@ const (
 )
 
 type Store interface {
-	ArchiveList() ([]int, error)
-	ArchiveExists(archiveID int) bool
-	GroupList(archiveID int) ([]int, error)
-	GroupExists(archiveID int, groupID int) bool
-	Read(archiveID int, groupID int) ([]byte, error)
+	ArchiveList() ([]uint8, error)
+	ArchiveExists(archiveID uint8) bool
+	GroupList(archiveID uint8) ([]uint32, error)
+	GroupExists(archiveID uint8, groupID uint32) bool
+	Read(archiveID uint8, groupID uint32) ([]byte, error)
 }

@@ -89,7 +89,7 @@ func ReadIndex(data []byte) (*Index, error) {
 			return nil, fmt.Errorf("reading delta: %w", err)
 		}
 		groupID := prevGroupID + delta
-		index.Groups[i] = &Group{ID: groupID, Files: make([]*File, 0)}
+		index.Groups[i] = &Group{ID: uint32(groupID), Files: make([]*File, 0)}
 		prevGroupID = groupID
 	}
 
@@ -193,7 +193,7 @@ func ReadIndex(data []byte) (*Index, error) {
 	return index, nil
 }
 
-func (i *Index) Group(id int) (*Group, error) {
+func (i *Index) Group(id uint32) (*Group, error) {
 	for _, group := range i.Groups {
 		if group.ID == id {
 			return group, nil
@@ -219,7 +219,7 @@ func readSize(reader *Reader, protocol Protocol) (int, error) {
 }
 
 type Group struct {
-	ID                   int
+	ID                   uint32
 	NameHash             int32
 	Version              int32
 	Checksum             int32

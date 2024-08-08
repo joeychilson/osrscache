@@ -10,8 +10,8 @@ func NewCache(store Store) *Cache {
 	return &Cache{Store: store}
 }
 
-func (c *Cache) Index(groupID int) (*Index, error) {
-	groupData, err := c.Store.Read(255, groupID)
+func (c *Cache) Index(archiveID uint8) (*Index, error) {
+	groupData, err := c.Store.Read(255, uint32(archiveID))
 	if err != nil {
 		return nil, fmt.Errorf("reading reference table: %w", err)
 	}
@@ -28,7 +28,7 @@ func (c *Cache) Index(groupID int) (*Index, error) {
 	return index, nil
 }
 
-func (c *Cache) Files(archiveID int, groupID int) (map[int][]byte, error) {
+func (c *Cache) Files(archiveID uint8, groupID uint32) (map[int][]byte, error) {
 	groupData, err := c.Store.Read(archiveID, groupID)
 	if err != nil {
 		return nil, fmt.Errorf("reading group data: %w", err)

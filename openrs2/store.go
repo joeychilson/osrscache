@@ -5,10 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
+	"slices"
 	"strconv"
-
-	"github.com/joeychilson/osrscache"
 )
 
 const (
@@ -28,15 +26,15 @@ func Open(path string) (*OpenRS2Store, error) {
 	return &OpenRS2Store{path: path}, nil
 }
 
-func (s *OpenRS2Store) ArchiveList() ([]int, error) {
-	var archives []int
+func (s *OpenRS2Store) ArchiveList() ([]uint8, error) {
+	var archives []uint8
 	err := filepath.Walk(s.path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		if info.IsDir() && archiveNameRegex.MatchString(info.Name()) {
 			if id, err := strconv.Atoi(info.Name()); err == nil {
-				archives = append(archives, id)
+				archives = append(archives, uint8(id))
 			}
 		}
 		return nil
@@ -44,22 +42,18 @@ func (s *OpenRS2Store) ArchiveList() ([]int, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to walk directory: %w", err)
 	}
-	sort.Ints(archives)
+	slices.Sort(archives)
 	return archives, nil
 }
 
-func (s *OpenRS2Store) ArchiveExists(archiveID int) bool {
-	if archiveID < 0 || archiveID > osrscache.MaxArchive {
-		return false
-	}
-
-	path := filepath.Join(s.path, strconv.Itoa(archiveID))
+func (s *OpenRS2Store) ArchiveExists(archiveID uint8) bool {
+	path := filepath.Join(s.path, strconv.Itoa(int(archiveID)))
 	fi, err := os.Stat(path)
 	return err == nil && fi.IsDir()
 }
 
-func (s *OpenRS2Store) GroupList(archiveID int) ([]int, error) {
-	path := filepath.Join(s.path, strconv.Itoa(archiveID))
+func (s *OpenRS2Store) GroupList(archiveID uint8) ([]uint32, error) {
+	path := filepath.Join(s.path, strconv.Itoa(int(archiveID)))
 
 	entries, err := os.ReadDir(path)
 	if err != nil {
@@ -69,7 +63,7 @@ func (s *OpenRS2Store) GroupList(archiveID int) ([]int, error) {
 		return nil, fmt.Errorf("failed to read archive directory: %w", err)
 	}
 
-	groups := make([]int, 0, len(entries))
+	groups := make([]uint32, 0, len(entries))
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -77,26 +71,22 @@ func (s *OpenRS2Store) GroupList(archiveID int) ([]int, error) {
 		name := entry.Name()
 		if len(name) > 4 && name[len(name)-4:] == groupExtension {
 			if id, err := strconv.Atoi(name[:len(name)-4]); err == nil {
-				groups = append(groups, id)
+				groups = append(groups, uint32(id))
 			}
 		}
 	}
-	sort.Ints(groups)
+	slices.Sort(groups)
 	return groups, nil
 }
 
-func (s *OpenRS2Store) GroupExists(archiveID, groupID int) bool {
-	if groupID < 0 {
-		return false
-	}
-
-	path := filepath.Join(s.path, strconv.Itoa(archiveID), strconv.Itoa(groupID)+groupExtension)
+func (s *OpenRS2Store) GroupExists(archiveID uint8, groupID uint32) bool {
+	path := filepath.Join(s.path, strconv.Itoa(int(archiveID)), strconv.Itoa(int(groupID))+groupExtension)
 	_, err := os.Stat(path)
 	return err == nil
 }
 
-func (s *OpenRS2Store) Read(archiveID, groupID int) ([]byte, error) {
-	path := filepath.Join(s.path, strconv.Itoa(archiveID), strconv.Itoa(groupID)+groupExtension)
+func (s *OpenRS2Store) Read(archiveID uint8, groupID uint32) ([]byte, error) {
+	path := filepath.Join(s.path, strconv.Itoa(int(archiveID)), strconv.Itoa(int(groupID))+groupExtension)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
