@@ -34,7 +34,7 @@ func (c *Cache) Files(archiveID uint8, groupID uint32) (map[uint32][]byte, error
 		return nil, fmt.Errorf("reading group data: %w", err)
 	}
 
-	decompresGroupData, err := DecompressData(groupData)
+	decompressGroupData, err := DecompressData(groupData)
 	if err != nil {
 		return nil, fmt.Errorf("decompressing group data: %w", err)
 	}
@@ -49,7 +49,7 @@ func (c *Cache) Files(archiveID uint8, groupID uint32) (map[uint32][]byte, error
 		return nil, fmt.Errorf("getting group: %w", err)
 	}
 
-	files, err := group.Unpack(decompresGroupData)
+	files, err := group.Unpack(decompressGroupData)
 	if err != nil {
 		return nil, fmt.Errorf("unpacking group: %w", err)
 	}
